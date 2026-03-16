@@ -87,7 +87,8 @@ a {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 /* --- Mobile header --- */
@@ -125,6 +126,8 @@ a {
   max-width: 800px;
   width: 100%;
   margin: 0 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* --- Bottom nav (mobile only) --- */
