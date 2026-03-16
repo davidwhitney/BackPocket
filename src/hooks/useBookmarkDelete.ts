@@ -11,6 +11,10 @@ export function useBookmarkDelete(onDelete: (id: string) => Promise<void>) {
       confirmLabel: "Delete",
       destructive: true,
     });
-    if (ok) await onDelete(id);
+
+    if (ok) {
+      await onDelete(id);
+    }
+    
   }, [confirm, onDelete]);
 }

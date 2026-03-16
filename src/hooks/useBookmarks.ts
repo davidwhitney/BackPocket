@@ -85,7 +85,7 @@ export function useBookmarks(onDataChanged?: () => void): BookmarkService {
     [updateBookmark],
   );
 
-  const search = useCallback(async (query: string, deep: boolean = false) => {
+  const search = useCallback((query: string, deep: boolean = false) => {
     return searchBookmarks(query, deep);
   }, []);
 

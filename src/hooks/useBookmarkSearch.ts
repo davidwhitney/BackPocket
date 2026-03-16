@@ -27,8 +27,10 @@ export function useBookmarkSearch(
       setSearching(false);
       return;
     }
+
     setSearching(true);
     const found = await searchFn(q.trim(), deep);
+
     setResults(found);
     setSearching(false);
   }, [searchFn]);
@@ -40,17 +42,20 @@ export function useBookmarkSearch(
 
   const setQuery = useCallback((value: string) => {
     setQueryState(value);
+
     if (!value.trim()) {
       setResults(null);
       setSearching(false);
       return;
     }
+
     setSearching(true);
     debouncedSearch(value, deepSearch);
   }, [deepSearch, debouncedSearch]);
 
   const setDeepSearch = useCallback((value: boolean) => {
     setDeepSearchState(value);
+    
     if (query.trim()) {
       runSearch(query, value);
     }
