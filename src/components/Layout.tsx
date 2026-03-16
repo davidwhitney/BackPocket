@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { type NetworkStatus } from "../hooks/useNetworkStatus.ts";
-import { AppLogoIcon, BookmarkIcon, PlusCircleIcon, SearchIcon, SettingsIcon } from "./Icons.tsx";
+import { AppLogoIcon, BookmarkIcon, PlusCircleIcon, SettingsIcon } from "./Icons.tsx";
 
 interface LayoutProps {
   networkStatus: NetworkStatus;
@@ -11,7 +11,6 @@ interface LayoutProps {
 const navItems = [
   { to: "/", label: "Bookmarks", icon: <BookmarkIcon /> },
   { to: "/add", label: "Add", icon: <PlusCircleIcon /> },
-  { to: "/search", label: "Search", icon: <SearchIcon /> },
   { to: "/settings", label: "Settings", icon: <SettingsIcon /> },
 ];
 

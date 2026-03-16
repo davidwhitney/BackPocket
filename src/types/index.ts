@@ -19,7 +19,7 @@ export interface BookmarkIndex {
 
 export interface PageSnapshot {
   id: string;
-  html: string;
+  content: string;
   textContent: string;
   fetchedAt: string;
 }

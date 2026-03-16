@@ -1,4 +1,5 @@
 import { serveDir } from "jsr:@std/http/file-server";
+import { DOMParser } from "jsr:@b-fuze/deno-dom";
 
 const PORT = parseInt(Deno.env.get("PORT") || "8000");
 
@@ -9,13 +10,11 @@ Deno.serve({ port: PORT }, async (req: Request) => {
     return handleFetchPage(url);
   }
 
-  // Serve static files from dist/ in production
   const response = await serveDir(req, {
     fsRoot: "dist",
     quiet: true,
   });
 
-  // SPA fallback: serve index.html for non-file routes
   if (response.status === 404) {
     const indexFile = await Deno.readFile("dist/index.html");
     return new Response(indexFile, {
@@ -72,17 +71,103 @@ async function handleFetchPage(reqUrl: URL): Promise<Response> {
     }
 
     const html = await response.text();
+    const extracted = extractArticleContent(html, targetUrl);
 
     return Response.json(
-      { html, url: targetUrl },
+      { ...extracted, url: targetUrl },
       {
-        headers: {
-          "Cache-Control": "public, max-age=300",
-        },
+        headers: { "Cache-Control": "public, max-age=300" },
       },
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Fetch failed";
     return Response.json({ error: message }, { status: 502 });
   }
+}
+
+// Selectors for elements that are definitely not article content
+const REMOVE_SELECTORS = [
+  "script", "style", "noscript", "iframe", "object", "embed",
+  "nav", "header", "footer",
+  "[role='navigation']", "[role='banner']", "[role='contentinfo']",
+  ".nav", ".navbar", ".header", ".footer", ".sidebar", ".menu",
+  ".ad", ".ads", ".advertisement", ".social-share", ".share-buttons",
+  ".cookie-banner", ".cookie-notice", ".popup", ".modal",
+  ".comments", ".comment-section", "#comments",
+  ".related-posts", ".recommended", ".newsletter",
+].join(", ");
+
+// Selectors that likely contain the main article content, in priority order
+const ARTICLE_SELECTORS = [
+  "article",
+  "[role='main'] article",
+  "[role='main']",
+  "main",
+  ".post-content",
+  ".article-content",
+  ".entry-content",
+  ".content",
+  "#content",
+  ".post",
+  ".article",
+];
+
+function extractArticleContent(html: string, _url: string): {
+  html: string;
+  title: string;
+  description: string;
+  content: string;
+  textContent: string;
+} {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  if (!doc) {
+    return { html, title: "", description: "", content: html, textContent: "" };
+  }
+
+  // Extract metadata
+  const title = doc.querySelector("title")?.textContent?.trim() ||
+    doc.querySelector('meta[property="og:title"]')?.getAttribute("content")?.trim() || "";
+  const description =
+    doc.querySelector('meta[name="description"]')?.getAttribute("content")?.trim() ||
+    doc.querySelector('meta[property="og:description"]')?.getAttribute("content")?.trim() || "";
+
+  // Remove noise elements
+  for (const el of doc.querySelectorAll(REMOVE_SELECTORS)) {
+    el.remove();
+  }
+
+  // Try to find the article container
+  let articleEl = null;
+  for (const selector of ARTICLE_SELECTORS) {
+    articleEl = doc.querySelector(selector);
+    if (articleEl) break;
+  }
+
+  // Fall back to body
+  const contentRoot = articleEl || doc.body;
+  if (!contentRoot) {
+    return { html, title, description, content: "", textContent: "" };
+  }
+
+  // Clean up the content further
+  for (const el of contentRoot.querySelectorAll(REMOVE_SELECTORS)) {
+    el.remove();
+  }
+
+  // Remove hidden elements
+  for (const el of contentRoot.querySelectorAll("[hidden], [aria-hidden='true'], .hidden, .visually-hidden, .sr-only")) {
+    el.remove();
+  }
+
+  // Remove empty divs/spans that are just wrappers
+  for (const el of contentRoot.querySelectorAll("div, span")) {
+    if (!el.textContent?.trim() && !el.querySelector("img, video, picture, figure, svg")) {
+      el.remove();
+    }
+  }
+
+  const content = contentRoot.innerHTML || "";
+  const textContent = contentRoot.textContent || "";
+
+  return { html, title, description, content, textContent };
 }

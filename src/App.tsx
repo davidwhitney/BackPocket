@@ -8,7 +8,6 @@ import { ConfirmDialog } from "./components/ConfirmDialog.tsx";
 import { BookmarkList } from "./pages/BookmarkList.tsx";
 import { AddBookmark } from "./pages/AddBookmark.tsx";
 import { ViewBookmark } from "./pages/ViewBookmark.tsx";
-import { SearchPage } from "./pages/SearchPage.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
 
 export function App() {
@@ -35,12 +34,8 @@ export function App() {
             element={<ViewBookmark bookmarks={bookmarkHook} />}
           />
           <Route
-            path="/search"
-            element={<SearchPage bookmarks={bookmarkHook} viewMode={viewMode} />}
-          />
-          <Route
             path="/settings"
-            element={<SettingsPage config={configHook} />}
+            element={<SettingsPage config={configHook} onDataChange={bookmarkHook.refresh} />}
           />
         </Routes>
       </Layout>

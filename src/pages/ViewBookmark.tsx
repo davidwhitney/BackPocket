@@ -21,7 +21,7 @@ export function ViewBookmark({ bookmarks }: Props) {
   const confirm = useConfirm();
   const [bookmark, setBookmark] = useState<Bookmark | null>(null);
   const [snapshot, setSnapshot] = useState<PageSnapshot | null>(null);
-  const [viewMode, setViewMode] = useState<"info" | "cached">("info");
+  const [readerMode, setReaderMode] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -81,6 +81,39 @@ export function ViewBookmark({ bookmarks }: Props) {
     setBookmark((prev) => prev ? { ...prev, status } : prev);
   };
 
+  // --- Reader mode ---
+  if (readerMode && snapshot) {
+    return (
+      <div className="reader-view">
+        <div className="reader-header">
+          <button className="btn-icon" onClick={() => setReaderMode(false)}>
+            <ArrowLeftIcon />
+          </button>
+          <span className="reader-label">Reader View</span>
+          <button className="btn-icon" title="Share" onClick={() => shareUrl(bookmark.title, bookmark.url)}>
+            <ShareIcon size={18} />
+          </button>
+        </div>
+        <article className="reader-content">
+          <h1 className="reader-title">{bookmark.title}</h1>
+          <a href={bookmark.url} className="reader-source" target="_blank" rel="noopener noreferrer">
+            {bookmark.url}
+          </a>
+          <div
+            className="reader-body"
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(snapshot.content, {
+                FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form"],
+                FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"],
+              }),
+            }}
+          />
+        </article>
+      </div>
+    );
+  }
+
+  // --- Normal view ---
   return (
     <div className="view-page">
       <div className="view-header">
@@ -135,11 +168,8 @@ export function ViewBookmark({ bookmarks }: Props) {
           Open Link
         </a>
         {snapshot && (
-          <button
-            className="btn btn-secondary"
-            onClick={() => setViewMode(viewMode === "cached" ? "info" : "cached")}
-          >
-            {viewMode === "cached" ? "Hide Cached" : "View Cached Copy"}
+          <button className="btn btn-secondary" onClick={() => setReaderMode(true)}>
+            Reader View
           </button>
         )}
       </div>
@@ -165,20 +195,6 @@ export function ViewBookmark({ bookmarks }: Props) {
           Delete
         </button>
       </div>
-
-      {viewMode === "cached" && snapshot && (
-        <div className="cached-view">
-          <div
-            className="cached-content"
-            dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(snapshot.html, {
-                FORBID_TAGS: ["script", "style", "iframe", "object", "embed"],
-                FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"],
-              }),
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }

@@ -1,14 +1,21 @@
+import { useRef, useState } from "react";
 import { AppConfig, StorageProvider, ViewMode } from "../types/index.ts";
-import { exportAllData } from "../services/storage.ts";
+import { exportAllData, importAllData } from "../services/storage.ts";
+import { useConfirm } from "../hooks/useConfirm.ts";
 
 interface Props {
   config: {
     config: AppConfig;
     setConfig: (update: Partial<AppConfig>) => void;
   };
+  onDataChange?: () => void;
 }
 
-export function SettingsPage({ config: { config, setConfig } }: Props) {
+export function SettingsPage({ config: { config, setConfig }, onDataChange }: Props) {
+  const confirm = useConfirm();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+
   const handleExport = async () => {
     const data = await exportAllData();
     const blob = new Blob([data], { type: "application/json" });
@@ -18,6 +25,40 @@ export function SettingsPage({ config: { config, setConfig } }: Props) {
     a.download = `backpocket-export-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so the same file can be selected again
+    e.target.value = "";
+
+    const ok = await confirm({
+      title: "Restore from backup",
+      message: "This will merge the backup data into your existing bookmarks. Bookmarks with the same ID will be overwritten. Continue?",
+      confirmLabel: "Restore",
+      destructive: false,
+    });
+    if (!ok) return;
+
+    setImportStatus("Reading file...");
+    try {
+      const json = await file.text();
+      setImportStatus("Importing...");
+      const result = await importAllData(json);
+      setImportStatus(
+        `Restored ${result.bookmarks} bookmark${result.bookmarks !== 1 ? "s" : ""} and ${result.snapshots} snapshot${result.snapshots !== 1 ? "s" : ""}.`,
+      );
+      onDataChange?.();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Import failed";
+      setImportStatus(`Error: ${message}`);
+    }
   };
 
   return (
@@ -98,12 +139,36 @@ export function SettingsPage({ config: { config, setConfig } }: Props) {
 
       <section className="settings-section">
         <h2>Data</h2>
-        <button className="btn btn-secondary" onClick={handleExport}>
-          Export All Data
-        </button>
-        <p className="help-text">
-          Downloads all bookmarks and cached pages as a JSON file.
-        </p>
+        <div className="data-actions">
+          <div>
+            <button className="btn btn-secondary" onClick={handleExport}>
+              Export All Data
+            </button>
+            <p className="help-text">
+              Downloads all bookmarks and cached pages as a JSON file.
+            </p>
+          </div>
+          <div>
+            <button className="btn btn-secondary" onClick={handleImportClick}>
+              Restore from Backup
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,application/json"
+              onChange={handleFileSelected}
+              hidden
+            />
+            <p className="help-text">
+              Import a previously exported backup file.
+            </p>
+            {importStatus && (
+              <p className={`import-status ${importStatus.startsWith("Error") ? "import-error" : ""}`}>
+                {importStatus}
+              </p>
+            )}
+          </div>
+        </div>
       </section>
     </div>
   );
@@ -121,7 +186,6 @@ function OneDriveConfig({
   const handleConnect = () => {
     const clientId = prompt("Enter your OneDrive App Client ID:");
     if (!clientId) return;
-    // In production, this would initiate OAuth flow
     setConfig({
       onedrive: {
         clientId,

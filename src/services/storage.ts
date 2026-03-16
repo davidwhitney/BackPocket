@@ -63,27 +63,16 @@ export async function getAllSnapshots(): Promise<PageSnapshot[]> {
   return db.getAll("snapshots");
 }
 
-// --- Metadata extraction ---
+// --- Page fetching ---
 
-export interface PageMetadata {
+interface FetchPageResult {
   title: string;
   description: string;
-  html: string;
+  content: string;
   textContent: string;
 }
 
-function extractMetadata(html: string): PageMetadata {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const title = doc.querySelector("title")?.textContent?.trim() || "";
-  const description =
-    doc.querySelector('meta[name="description"]')?.getAttribute("content")?.trim() ||
-    doc.querySelector('meta[property="og:description"]')?.getAttribute("content")?.trim() ||
-    "";
-  const textContent = doc.body?.textContent || "";
-  return { title, description, html, textContent };
-}
-
-async function fetchPageHtml(url: string, signal?: AbortSignal): Promise<string | null> {
+async function fetchPage(url: string, signal?: AbortSignal): Promise<FetchPageResult | null> {
   try {
     const response = await fetch(
       `/api/fetch-page?url=${encodeURIComponent(url)}`,
@@ -91,23 +80,23 @@ async function fetchPageHtml(url: string, signal?: AbortSignal): Promise<string 
     );
     if (!response.ok) return null;
     const data = await response.json();
-    return data.html || null;
+    // Server extracts article content and metadata
+    return {
+      title: data.title || "",
+      description: data.description || "",
+      content: data.content || "",
+      textContent: data.textContent || "",
+    };
   } catch {
     return null;
   }
 }
 
-/**
- * Fetch HTML, parse it, save the snapshot, and update the bookmark's metadata.
- * Shared by fetchAndStoreSnapshot and fetchPendingSnapshots.
- */
-async function saveSnapshotForBookmark(bookmarkId: string, html: string): Promise<void> {
-  const meta = extractMetadata(html);
-
+async function saveSnapshotForBookmark(bookmarkId: string, page: FetchPageResult): Promise<void> {
   await saveSnapshot({
     id: bookmarkId,
-    html: meta.html,
-    textContent: meta.textContent,
+    content: page.content,
+    textContent: page.textContent,
     fetchedAt: new Date().toISOString(),
   });
 
@@ -115,11 +104,11 @@ async function saveSnapshotForBookmark(bookmarkId: string, html: string): Promis
   if (bookmark) {
     bookmark.snapshotAvailable = true;
     bookmark.dateModified = new Date().toISOString();
-    if (meta.title && bookmark.title === bookmark.url) {
-      bookmark.title = meta.title;
+    if (page.title && bookmark.title === bookmark.url) {
+      bookmark.title = page.title;
     }
-    if (meta.description && !bookmark.description) {
-      bookmark.description = meta.description;
+    if (page.description && !bookmark.description) {
+      bookmark.description = page.description;
     }
     await saveBookmark(bookmark);
   }
@@ -133,12 +122,10 @@ export async function fetchPageMetadata(
 ): Promise<{ title: string; description: string } | null> {
   if (!navigator.onLine) return null;
 
-  const html = await fetchPageHtml(url, signal);
-  if (!html) return null;
-
-  const meta = extractMetadata(html);
-  if (!meta.title && !meta.description) return null;
-  return { title: meta.title, description: meta.description };
+  const page = await fetchPage(url, signal);
+  if (!page) return null;
+  if (!page.title && !page.description) return null;
+  return { title: page.title, description: page.description };
 }
 
 export async function addBookmark(
@@ -173,23 +160,23 @@ export async function fetchAndStoreSnapshot(id: string, url: string): Promise<vo
     return;
   }
 
-  const html = await fetchPageHtml(url);
-  if (!html) {
+  const page = await fetchPage(url);
+  if (!page) {
     await enqueueSnapshotFetch(id, url);
     return;
   }
 
-  await saveSnapshotForBookmark(id, html);
+  await saveSnapshotForBookmark(id, page);
 }
 
 export async function fetchPendingSnapshots(): Promise<void> {
   const pending = await getAllPending();
 
   for (const item of pending) {
-    const html = await fetchPageHtml(item.url);
-    if (!html) continue;
+    const page = await fetchPage(item.url);
+    if (!page) continue;
 
-    await saveSnapshotForBookmark(item.bookmarkId, html);
+    await saveSnapshotForBookmark(item.bookmarkId, page);
     await dequeueItem(item.id);
   }
 }
@@ -235,4 +222,32 @@ export async function exportAllData(): Promise<string> {
   const index = await loadIndex();
   const snapshots = await getAllSnapshots();
   return JSON.stringify({ index, snapshots }, null, 2);
+}
+
+export async function importAllData(json: string): Promise<{ bookmarks: number; snapshots: number }> {
+  const data = JSON.parse(json);
+
+  if (!data?.index?.bookmarks || !Array.isArray(data.index.bookmarks)) {
+    throw new Error("Invalid backup file: missing bookmarks array");
+  }
+
+  const bookmarks: Bookmark[] = data.index.bookmarks;
+  const snapshots: PageSnapshot[] = Array.isArray(data.snapshots) ? data.snapshots : [];
+
+  const db = await getDb();
+
+  const tx = db.transaction(["index", "snapshots"], "readwrite");
+  const indexStore = tx.objectStore("index");
+  const snapshotStore = tx.objectStore("snapshots");
+
+  for (const bookmark of bookmarks) {
+    await indexStore.put(bookmark);
+  }
+  for (const snapshot of snapshots) {
+    await snapshotStore.put(snapshot);
+  }
+
+  await tx.done;
+
+  return { bookmarks: bookmarks.length, snapshots: snapshots.length };
 }
