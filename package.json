@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "concurrently \"npm run server:dev\" \"npm run vite\"",
     "vite": "vite",
-    "server:dev": "tsx watch server.ts",
-    "server": "tsx server.ts",
+    "server:dev": "tsx watch --env-file=.env server.ts",
+    "server": "tsx --env-file=.env server.ts",
     "build": "vite build",
     "preview": "npm run server",
     "start": "npm run build && npm run server"
@@ -37,7 +37,6 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.0",
     "concurrently": "^9.1.0",
-    "dotenv": "^16.5.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vite": "^8.0.0",
