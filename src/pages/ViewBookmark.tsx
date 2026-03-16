@@ -24,6 +24,11 @@ export function ViewBookmark({ bookmarks }: Props) {
   const [tagInput, setTagInput] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const confirmDelete = useBookmarkDelete(async (deleteId) => {
+    await bookmarks.removeBookmark(deleteId);
+    navigate("/");
+  });
+
   const load = useCallback(async () => {
     if (!id) return;
     const bm = await getBookmark(id);
@@ -61,11 +66,6 @@ export function ViewBookmark({ bookmarks }: Props) {
     await bookmarks.setTags(bookmark.id, newTags);
     setBookmark((prev) => prev ? { ...prev, tags: newTags } : prev);
   };
-
-  const confirmDelete = useBookmarkDelete(async (id) => {
-    await bookmarks.removeBookmark(id);
-    navigate("/");
-  });
 
   const updateLocalStatus = (status: BookmarkStatus) => {
     bookmarks.setStatus(bookmark.id, status);
