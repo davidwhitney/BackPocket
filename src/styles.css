@@ -664,6 +664,99 @@ textarea {
 }
 
 /* ============================================================
+   Bookmark Compact (compact view)
+   ============================================================ */
+
+.bookmark-list-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bookmark-compact {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  transition: all 0.15s;
+}
+
+.bookmark-compact:hover {
+  box-shadow: 0 1px 6px var(--shadow);
+  border-color: var(--text-secondary);
+}
+
+.bookmark-compact.read {
+  opacity: 0.6;
+}
+
+.bookmark-compact-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.bookmark-compact-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bookmark-compact-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.bookmark-compact-domain {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bookmark-compact-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.bookmark-compact-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bookmark-compact-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.bookmark-compact-actions .btn-icon {
+  width: 28px;
+  height: 28px;
+}
+
+
+/* ============================================================
    Bookmark Row (list view)
    ============================================================ */
 
@@ -746,6 +839,17 @@ textarea {
 .bookmark-row-actions .btn-icon {
   width: 28px;
   height: 28px;
+}
+
+.favicon {
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.favicon-placeholder {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  opacity: 0.4;
 }
 
 /* ============================================================

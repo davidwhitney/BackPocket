@@ -25,7 +25,7 @@ export interface PageSnapshot {
 }
 
 export type StorageProvider = 'local' | 'onedrive' | 'icloud' | 'dropbox';
-export type ViewMode = 'card' | 'list';
+export type ViewMode = 'card' | 'compact' | 'list';
 
 export interface AppConfig {
   storageProvider: StorageProvider;

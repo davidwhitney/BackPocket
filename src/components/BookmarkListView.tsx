@@ -1,5 +1,6 @@
 import { Bookmark, BookmarkActions, ViewMode } from "../types/index.ts";
 import { BookmarkCard } from "./BookmarkCard.tsx";
+import { BookmarkCompact } from "./BookmarkCompact.tsx";
 import { BookmarkRow } from "./BookmarkRow.tsx";
 
 interface Props extends BookmarkActions {
@@ -7,10 +8,16 @@ interface Props extends BookmarkActions {
   viewMode: ViewMode;
 }
 
+const VIEW_CONFIG = {
+  card: { component: BookmarkCard, className: "bookmark-list" },
+  compact: { component: BookmarkCompact, className: "bookmark-list-compact" },
+  list: { component: BookmarkRow, className: "bookmark-list-rows" },
+} as const;
+
 export function BookmarkListView({ bookmarks, viewMode, onStatusChange, onDelete }: Props) {
-  const Item = viewMode === "list" ? BookmarkRow : BookmarkCard;
+  const { component: Item, className } = VIEW_CONFIG[viewMode];
   return (
-    <div className={viewMode === "list" ? "bookmark-list-rows" : "bookmark-list"}>
+    <div className={className}>
       {bookmarks.map((bookmark) => (
         <Item
           key={bookmark.id}

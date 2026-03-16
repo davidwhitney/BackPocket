@@ -14,3 +14,8 @@ export function getDomain(url: string): string {
     return url;
   }
 }
+
+export function getFaviconUrl(url: string, size: number = 32): string {
+  const domain = getDomain(url);
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size}`;
+}

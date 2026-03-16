@@ -1,25 +1,30 @@
 import { Link } from "react-router-dom";
 import { Bookmark, BookmarkActions } from "../types/index.ts";
 import { timeAgo, getDomain } from "../utils/format.ts";
-import { CheckIcon, CircleIcon, ArchiveIcon, TrashIcon } from "./Icons.tsx";
+import { shareUrl } from "../utils/share.ts";
+import { CheckIcon, CircleIcon, ArchiveIcon, ShareIcon, TrashIcon } from "./Icons.tsx";
 import { Favicon } from "./Favicon.tsx";
 
 interface Props extends BookmarkActions {
   bookmark: Bookmark;
 }
 
-export function BookmarkRow({ bookmark, onStatusChange, onDelete }: Props) {
+export function BookmarkCompact({ bookmark, onStatusChange, onDelete }: Props) {
   return (
-    <div className={`bookmark-row ${bookmark.status}`}>
-      <Favicon url={bookmark.url} size={16} />
-      <Link to={`/view/${bookmark.id}`} className="bookmark-row-content">
-        <div className="bookmark-row-main">
-          <span className="bookmark-row-title">{bookmark.title}</span>
-          <span className="bookmark-row-domain">{getDomain(bookmark.url)}</span>
+    <div className={`bookmark-compact ${bookmark.status}`}>
+      <Link to={`/view/${bookmark.id}`} className="bookmark-compact-content">
+        <div className="bookmark-compact-header">
+          <Favicon url={bookmark.url} size={16} />
+          <span className="bookmark-compact-title">{bookmark.title}</span>
+          <span className="bookmark-compact-domain">{getDomain(bookmark.url)}</span>
         </div>
-        <div className="bookmark-row-meta">
+        {bookmark.description && (
+          <p className="bookmark-compact-desc">{bookmark.description}</p>
+        )}
+        <div className="bookmark-compact-meta">
+          <span className="bookmark-time">{timeAgo(bookmark.dateAdded)}</span>
           {bookmark.tags.length > 0 && (
-            <span className="bookmark-row-tags">
+            <span className="bookmark-tags">
               {bookmark.tags.map((t) => (
                 <span key={t} className="tag tag-sm">{t}</span>
               ))}
@@ -28,10 +33,9 @@ export function BookmarkRow({ bookmark, onStatusChange, onDelete }: Props) {
           {bookmark.snapshotAvailable && (
             <span className="snapshot-badge" title="Offline copy available">&#9679;</span>
           )}
-          <span className="bookmark-time">{timeAgo(bookmark.dateAdded)}</span>
         </div>
       </Link>
-      <div className="bookmark-row-actions">
+      <div className="bookmark-compact-actions">
         {bookmark.status === "unread" ? (
           <button className="btn-icon" title="Mark as read" onClick={() => onStatusChange(bookmark.id, "read")}>
             <CheckIcon size={14} />
@@ -43,6 +47,9 @@ export function BookmarkRow({ bookmark, onStatusChange, onDelete }: Props) {
         )}
         <button className="btn-icon" title="Archive" onClick={() => onStatusChange(bookmark.id, "archived")}>
           <ArchiveIcon size={14} />
+        </button>
+        <button className="btn-icon" title="Share" onClick={() => shareUrl(bookmark.title, bookmark.url)}>
+          <ShareIcon size={14} />
         </button>
         <button
           className="btn-icon btn-danger"

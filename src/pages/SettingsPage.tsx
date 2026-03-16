@@ -48,17 +48,20 @@ export function SettingsPage({ config: { config, setConfig } }: Props) {
         <div className="form-group">
           <label>View Mode</label>
           <div className="radio-group">
-            {(["card", "list"] as ViewMode[]).map((value) => (
-              <label key={value} className="radio-label">
-                <input
-                  type="radio"
-                  name="viewMode"
-                  checked={config.viewMode === value}
-                  onChange={() => setConfig({ viewMode: value })}
-                />
-                <span>{value === "card" ? "Cards" : "List"}</span>
-              </label>
-            ))}
+            {(["card", "compact", "list"] as ViewMode[]).map((value) => {
+              const labels: Record<ViewMode, string> = { card: "Cards", compact: "List", list: "Compact" };
+              return (
+                <label key={value} className="radio-label">
+                  <input
+                    type="radio"
+                    name="viewMode"
+                    checked={config.viewMode === value}
+                    onChange={() => setConfig({ viewMode: value })}
+                  />
+                  <span>{labels[value]}</span>
+                </label>
+              );
+            })}
           </div>
         </div>
       </section>
