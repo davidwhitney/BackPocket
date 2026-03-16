@@ -1,10 +1,13 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/api/*", "*.css", "*.js", "*.svg", "*.png", "*.webmanifest"]
+    "exclude": ["/assets/*", "/api/*", "/.well-known/*", "*.css", "*.js", "*.svg", "*.png", "*.json", "*.webmanifest"]
   },
   "globalHeaders": {
     "X-Clacks-Overhead": "GNU Terry Pratchett"
+  },
+  "mimeTypes": {
+    ".json": "application/json"
   },
   "platform": {
     "apiRuntime": "node:22"

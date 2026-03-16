@@ -1,0 +1,62 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Bubblewrap
+        run: npm install -g @nicolo-ribaudo/bubblewrap || npm install -g @nicolo-ribaudo/bubblewrap-cli || npm install -g @nicolo-ribaudo 2>/dev/null || npm install -g @nicolo-ribaudo/nicolo-ribaudo 2>/dev/null || npm install -g @nicolo-ribaudo/bubblewrap 2>/dev/null || true; npm install -g @bubblewrap/cli@1.24.1
+
+      - name: Generate signing key
+        run: |
+          keytool -genkeypair \
+            -alias pockt \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -keystore pockt.keystore \
+            -storepass "$STORE_PASS" \
+            -keypass "$STORE_PASS" \
+            -dname "CN=Pockt, O=Pockt, L=London, C=GB"
+        env:
+          STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD || 'pockt-dev-build' }}
+
+      - name: Init and build TWA
+        run: |
+          bubblewrap init --manifest="https://pockt.it/manifest.webmanifest" --directory=android-build
+          cd android-build
+          bubblewrap build \
+            --skipPwaValidation \
+            --signingKeyPath="../pockt.keystore" \
+            --signingKeyAlias="pockt"
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'pockt-dev-build' }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'pockt-dev-build' }}
+
+      - name: Find APK
+        run: find . -name "*.apk" -type f
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pockt-android
+          path: "**/*.apk"
+          if-no-files-found: warn
