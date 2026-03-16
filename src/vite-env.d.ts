@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly BACKPOCKET_ONEDRIVE_CLIENT_ID: string;
+  readonly POCKT_ONEDRIVE_CLIENT_ID: string;
 }
 
 interface ImportMeta {

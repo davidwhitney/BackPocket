@@ -5,7 +5,7 @@ import { importAllData } from "../../services/storage.ts";
 import { startOneDriveAuth, exchangeOneDriveCode } from "../../services/onedrive.ts";
 import { getExternalProvider } from "../../services/sync/registry.ts";
 
-const CLIENT_ID = import.meta.env.BACKPOCKET_ONEDRIVE_CLIENT_ID;
+const CLIENT_ID = import.meta.env.POCKT_ONEDRIVE_CLIENT_ID;
 
 interface Props {
   config: AppConfig;
@@ -97,7 +97,7 @@ export function OneDriveConfig({ config, setConfig, onDataChange, syncNow }: Pro
   if (!CLIENT_ID) {
     return (
       <div className="provider-config">
-        <div className="info-box">OneDrive integration is not configured. Set BACKPOCKET_ONEDRIVE_CLIENT_ID in your .env file.</div>
+        <div className="info-box">OneDrive integration is not configured. Set POCKT_ONEDRIVE_CLIENT_ID in your .env file.</div>
       </div>
     );
   }
@@ -120,7 +120,7 @@ export function OneDriveConfig({ config, setConfig, onDataChange, syncNow }: Pro
         <button className="btn btn-secondary" onClick={handleConnect}>Connect OneDrive</button>
       )}
       {status && <p className={`import-status ${status.startsWith("Error") ? "import-error" : ""}`}>{status}</p>}
-      <p className="help-text">Data is stored in OneDrive/BackPocketDb/</p>
+      <p className="help-text">Data is stored in OneDrive/PocktDb/</p>
     </div>
   );
 }

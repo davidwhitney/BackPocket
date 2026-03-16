@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
-  envPrefix: "BACKPOCKET_",
+  envPrefix: "POCKT_",
   server: {
     proxy: {
       "/api": {
@@ -22,8 +22,8 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
-        name: "BackPocket",
-        short_name: "BackPocket",
+        name: "Pockt",
+        short_name: "Pockt",
         description: "Save and organize your bookmarks for offline reading",
         theme_color: "#000000",
         background_color: "#000000",

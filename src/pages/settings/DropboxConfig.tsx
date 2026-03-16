@@ -25,7 +25,7 @@ export function DropboxConfig({ config, setConfig }: Props) {
       ) : (
         <button className="btn btn-secondary" onClick={handleConnect}>Connect Dropbox</button>
       )}
-      <p className="help-text">Data will be stored in Dropbox/Apps/BackPocketDb/</p>
+      <p className="help-text">Data will be stored in Dropbox/Apps/PocktDb/</p>
     </div>
   );
 }

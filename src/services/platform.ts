@@ -8,8 +8,8 @@ export type Platform = "pwa" | "android" | "ios";
 export function detectPlatform(): Platform {
   // Native wrappers will inject a global to identify themselves
   const w = window as any;
-  if (w.__BACKPOCKET_PLATFORM === "android") return "android";
-  if (w.__BACKPOCKET_PLATFORM === "ios") return "ios";
+  if (w.__POCKT_PLATFORM === "android") return "android";
+  if (w.__POCKT_PLATFORM === "ios") return "ios";
   return "pwa";
 }
 

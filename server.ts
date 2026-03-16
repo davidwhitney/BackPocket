@@ -24,7 +24,7 @@ Deno.serve({ port: PORT }, async (req: Request) => {
   return response;
 });
 
-console.log(`BackPocket server running on http://localhost:${PORT}`);
+console.log(`Pockt server running on http://localhost:${PORT}`);
 
 // ============================================================
 // Page fetch + content extraction
@@ -50,7 +50,7 @@ async function handleFetchPage(reqUrl: URL): Promise<Response> {
       signal: controller.signal,
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; BackPocket/1.0; +https://github.com/backpocket)",
+          "Mozilla/5.0 (compatible; Pockt/1.0; +https://github.com/pockt)",
         Accept: "text/html,application/xhtml+xml,*/*",
       },
       redirect: "follow",

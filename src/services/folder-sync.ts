@@ -9,7 +9,7 @@ export function isFileSystemAccessSupported(): boolean {
 export async function pickFolder(): Promise<FileSystemDirectoryHandle | null> {
   try {
     const handle = await (window as any).showDirectoryPicker({
-      id: "backpocket-sync",
+      id: "pockt-sync",
       mode: "readwrite",
       startIn: "documents",
     });
@@ -134,7 +134,7 @@ export async function readAllSnapshotsFromFolder(): Promise<PageSnapshot[]> {
 
 // --- Handle persistence (IndexedDB) ---
 
-const IDB_NAME = "backpocket_fshandles";
+const IDB_NAME = "pockt_fshandles";
 const IDB_STORE = "handles";
 
 function openHandleDb(): Promise<IDBDatabase> {

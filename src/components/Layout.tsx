@@ -26,7 +26,7 @@ export function Layout({ networkStatus, children }: LayoutProps) {
       <aside className="app-sidebar">
         <Link to="/" className="app-logo">
           <AppLogoIcon />
-          <span>BackPocket</span>
+          <span>Pockt</span>
         </Link>
         <nav className="sidebar-nav">
           {navItems.map((item) => (
@@ -44,7 +44,7 @@ export function Layout({ networkStatus, children }: LayoutProps) {
           <div className="header-row">
             <Link to="/" className="app-logo">
               <AppLogoIcon />
-              <span>BackPocket</span>
+              <span>Pockt</span>
             </Link>
             {!networkStatus.online && <span className="offline-badge">Offline</span>}
           </div>

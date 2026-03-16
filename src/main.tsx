@@ -19,7 +19,7 @@ if ("serviceWorker" in navigator) {
       const { registerSW } = await import("virtual:pwa-register");
       registerSW({
         onOfflineReady() {
-          console.log("BackPocket ready for offline use");
+          console.log("Pockt ready for offline use");
         },
       });
     } catch {

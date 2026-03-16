@@ -1,9 +1,9 @@
 // --- Database names ---
-export const DB_NAME = "backpocket";
+export const DB_NAME = "pockt";
 export const DB_VERSION = 1;
-export const QUEUE_DB_NAME = "backpocket_queue";
+export const QUEUE_DB_NAME = "pockt_queue";
 export const QUEUE_DB_VERSION = 1;
-export const CONFIG_KEY = "backpocket_config";
+export const CONFIG_KEY = "pockt_config";
 
 // --- Service worker message types ---
 export const SW_MESSAGES = {

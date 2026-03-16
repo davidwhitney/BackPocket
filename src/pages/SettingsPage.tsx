@@ -27,7 +27,7 @@ export function SettingsPage({ config: { config, setConfig }, onDataChange, sync
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `backpocket-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `pockt-export-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

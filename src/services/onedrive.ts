@@ -3,8 +3,8 @@ import type { AppConfig } from "../types/index.ts";
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0";
 const MS_TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
 const MS_AUTH_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
-const APP_FOLDER = "BackPocketDb";
-const PKCE_STORAGE_KEY = "backpocket_pkce_verifier";
+const APP_FOLDER = "PocktDb";
+const PKCE_STORAGE_KEY = "pockt_pkce_verifier";
 
 // --- PKCE helpers ---
 
@@ -239,7 +239,7 @@ export async function syncToOneDrive(
 
   try {
     const data = await exportData();
-    const ok = await uploadFile(accessToken, "backpocket-data.json", data);
+    const ok = await uploadFile(accessToken, "pockt-data.json", data);
     if (ok) {
       saveConfig({ lastSync: new Date().toISOString() });
       return { success: true };
@@ -258,7 +258,7 @@ export async function syncFromOneDrive(
   if (!accessToken) return { success: false, error: "Not authenticated" };
 
   try {
-    const data = await downloadFile(accessToken, "backpocket-data.json");
+    const data = await downloadFile(accessToken, "pockt-data.json");
     if (!data) return { success: false, error: "No backup found on OneDrive" };
     return { success: true, data };
   } catch (err) {

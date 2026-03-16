@@ -9,7 +9,7 @@ import { clientsClaim } from "workbox-core";
 // Note: constants are inlined here because the SW bundle is separate from the
 // main app bundle and can't share the idb library or main-thread modules.
 // These values must stay in sync with src/constants.ts.
-const QUEUE_DB_NAME = "backpocket_queue";
+const QUEUE_DB_NAME = "pockt_queue";
 const CACHE_SNAPSHOTS = "snapshot-fetches";
 const SYNC_TAG = "snapshot-queue";
 const MSG_SNAPSHOTS_SYNCED = "SNAPSHOTS_SYNCED";
