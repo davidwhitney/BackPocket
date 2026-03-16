@@ -1,10 +1,10 @@
-import { Bookmark, BookmarkIndex, PageSnapshot } from "../types/index.ts";
-import { generateId } from "../utils/id.ts";
-import { getPlatformServices } from "./platform.ts";
-import { enqueueSnapshotFetch, getAllPending, dequeueItem } from "./offline-queue.ts";
-import { getExternalProvider } from "./sync/registry.ts";
-import { loadConfig } from "./config.ts";
-import type { FetchPageResult } from "./strategies/PageFetchStrategy.ts";
+import { Bookmark, BookmarkIndex, PageSnapshot } from "../types/index";
+import { generateId } from "../utils/id";
+import { getPlatformServices } from "./platform";
+import { enqueueSnapshotFetch, getAllPending, dequeueItem } from "./offline-queue";
+import { getExternalProvider } from "./sync/registry";
+import { loadConfig } from "./config";
+import type { FetchPageResult } from "./strategies/PageFetchStrategy";
 
 // --- Delegating accessors (keep the public API unchanged) ---
 

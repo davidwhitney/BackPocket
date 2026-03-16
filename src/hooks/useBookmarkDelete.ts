@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useConfirm } from "./useConfirm.ts";
+import { useConfirm } from "./useConfirm";
 
 export function useBookmarkDelete(onDelete: (id: string) => Promise<void>) {
   const confirm = useConfirm();

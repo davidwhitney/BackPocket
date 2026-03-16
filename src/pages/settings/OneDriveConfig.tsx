@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AppConfig } from "../../types/index.ts";
-import { importAllData } from "../../services/storage.ts";
-import { startOneDriveAuth, exchangeOneDriveCode } from "../../services/onedrive.ts";
-import { getExternalProvider } from "../../services/sync/registry.ts";
+import { AppConfig } from "../../types/index";
+import { importAllData } from "../../services/storage";
+import { startOneDriveAuth, exchangeOneDriveCode } from "../../services/onedrive";
+import { getExternalProvider } from "../../services/sync/registry";
 
 const CLIENT_ID = import.meta.env.POCKT_ONEDRIVE_CLIENT_ID;
 

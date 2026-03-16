@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { AppConfig } from "../../types/index.ts";
-import { importAllData } from "../../services/storage.ts";
-import { pickFolder, persistHandle, restoreHandle, clearHandle, getDirHandle } from "../../services/folder-sync.ts";
-import { getExternalProvider } from "../../services/sync/registry.ts";
+import { AppConfig } from "../../types/index";
+import { importAllData } from "../../services/storage";
+import { pickFolder, persistHandle, restoreHandle, clearHandle, getDirHandle } from "../../services/folder-sync";
+import { getExternalProvider } from "../../services/sync/registry";
 
 interface Props {
   config: AppConfig;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Bookmark } from "../types/index.ts";
-import { useMetadataFetch } from "../hooks/useMetadataFetch.ts";
+import { Bookmark } from "../types/index";
+import { useMetadataFetch } from "../hooks/useMetadataFetch";
 
 interface Props {
   bookmarks: {

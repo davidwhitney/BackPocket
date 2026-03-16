@@ -1,4 +1,4 @@
-import type { BookmarkIndex, PageSnapshot, AppConfig } from "../../types/index.ts";
+import type { BookmarkIndex, PageSnapshot, AppConfig } from "../../types/index";
 
 export interface SyncResult {
   success: boolean;

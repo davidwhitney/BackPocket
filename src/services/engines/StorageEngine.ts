@@ -1,4 +1,4 @@
-import type { Bookmark, BookmarkIndex, PageSnapshot } from "../../types/index.ts";
+import type { Bookmark, BookmarkIndex, PageSnapshot } from "../../types/index";
 
 export interface StorageEngine {
   // Bookmarks

@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Bookmark, BookmarkStatus } from "../types/index.ts";
+import { Bookmark, BookmarkStatus } from "../types/index";
 import {
   loadIndex,
   addBookmark as storageAdd,
   saveBookmark,
   deleteBookmark as storageDelete,
   searchBookmarks,
-} from "../services/storage.ts";
+} from "../services/storage";
 
 export interface BookmarkService {
   bookmarks: Bookmark[];

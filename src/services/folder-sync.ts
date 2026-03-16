@@ -1,4 +1,4 @@
-import type { BookmarkIndex, PageSnapshot } from "../types/index.ts";
+import type { BookmarkIndex, PageSnapshot } from "../types/index";
 
 let _dirHandle: FileSystemDirectoryHandle | null = null;
 

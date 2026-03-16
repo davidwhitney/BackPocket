@@ -1,56 +1,36 @@
-import { serveDir } from "jsr:@std/http/file-server";
-import { DOMParser } from "jsr:@b-fuze/deno-dom";
+import "dotenv/config";
+import { Hono } from "hono";
+import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
+import { JSDOM } from "jsdom";
+import { readFileSync } from "node:fs";
 
-const PORT = parseInt(Deno.env.get("PORT") || "8000");
-Deno.serve({ port: PORT }, async (req: Request) => {
-  const url = new URL(req.url);
+const PORT = parseInt(process.env.PORT || "8000");
 
-  if (url.pathname === "/api/fetch-page") {
-    return handleFetchPage(url);
-  }
+const app = new Hono();
 
-  const response = await serveDir(req, {
-    fsRoot: "dist",
-    quiet: true,
-  });
+// --- API routes ---
 
-  if (response.status === 404) {
-    const indexFile = await Deno.readFile("dist/index.html");
-    return new Response(indexFile, {
-      headers: { "content-type": "text/html; charset=utf-8" },
-    });
-  }
-
-  return response;
-});
-
-console.log(`Pockt server running on http://localhost:${PORT}`);
-
-// ============================================================
-// Page fetch + content extraction
-// ============================================================
-
-async function handleFetchPage(reqUrl: URL): Promise<Response> {
-  const targetUrl = reqUrl.searchParams.get("url");
+app.get("/api/fetch-page", async (c) => {
+  const targetUrl = c.req.query("url");
   if (!targetUrl) {
-    return Response.json({ error: "Missing ?url= parameter" }, { status: 400 });
+    return c.json({ error: "Missing ?url= parameter" }, 400);
   }
 
   try {
     new URL(targetUrl);
   } catch {
-    return Response.json({ error: "Invalid URL" }, { status: 400 });
+    return c.json({ error: "Invalid URL" }, 400);
   }
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10_000); // FETCH_PAGE_TIMEOUT_MS
+    const timeout = setTimeout(() => controller.abort(), 10_000);
 
     const response = await fetch(targetUrl, {
       signal: controller.signal,
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; Pockt/1.0; +https://github.com/pockt)",
+        "User-Agent": "Mozilla/5.0 (compatible; Pockt/1.0; +https://github.com/pockt)",
         Accept: "text/html,application/xhtml+xml,*/*",
       },
       redirect: "follow",
@@ -59,34 +39,50 @@ async function handleFetchPage(reqUrl: URL): Promise<Response> {
     clearTimeout(timeout);
 
     if (!response.ok) {
-      return Response.json(
-        { error: `Upstream returned ${response.status}` },
-        { status: 502 },
-      );
+      return c.json({ error: `Upstream returned ${response.status}` }, 502);
     }
 
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("text/html") && !contentType.includes("application/xhtml")) {
-      return Response.json(
-        { error: "Not an HTML page" },
-        { status: 422 },
-      );
+      return c.json({ error: "Not an HTML page" }, 422);
     }
 
     const html = await response.text();
-    const extracted = extractArticleContent(html, targetUrl);
+    const extracted = extractArticleContent(html);
 
-    return Response.json(
+    return c.json(
       { ...extracted, url: targetUrl },
-      {
-        headers: { "Cache-Control": "public, max-age=300" },
-      },
+      200,
+      { "Cache-Control": "public, max-age=300" },
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Fetch failed";
-    return Response.json({ error: message }, { status: 502 });
+    return c.json({ error: message }, 502);
   }
-}
+});
+
+// --- Static files (production) ---
+
+app.use("/*", serveStatic({ root: "./dist" }));
+
+// SPA fallback
+app.get("*", (c) => {
+  try {
+    const html = readFileSync("dist/index.html", "utf-8");
+    return c.html(html);
+  } catch {
+    return c.text("Not found", 404);
+  }
+});
+
+// --- Start server ---
+
+console.log(`Pockt server running on http://localhost:${PORT}`);
+serve({ fetch: app.fetch, port: PORT });
+
+// ============================================================
+// Content extraction
+// ============================================================
 
 const REMOVE_SELECTORS = [
   "script", "style", "noscript", "iframe", "object", "embed",
@@ -113,17 +109,15 @@ const ARTICLE_SELECTORS = [
   ".article",
 ];
 
-function extractArticleContent(html: string, _url: string): {
+function extractArticleContent(html: string): {
   html: string;
   title: string;
   description: string;
   content: string;
   textContent: string;
 } {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  if (!doc) {
-    return { html, title: "", description: "", content: html, textContent: "" };
-  }
+  const dom = new JSDOM(html);
+  const doc = dom.window.document;
 
   const title = doc.querySelector("title")?.textContent?.trim() ||
     doc.querySelector('meta[property="og:title"]')?.getAttribute("content")?.trim() || "";
@@ -135,7 +129,7 @@ function extractArticleContent(html: string, _url: string): {
     el.remove();
   }
 
-  let articleEl = null;
+  let articleEl: Element | null = null;
   for (const selector of ARTICLE_SELECTORS) {
     articleEl = doc.querySelector(selector);
     if (articleEl) break;
@@ -165,5 +159,3 @@ function extractArticleContent(html: string, _url: string): {
 
   return { html, title, description, content, textContent };
 }
-
-// ============================================================

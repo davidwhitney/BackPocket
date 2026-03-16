@@ -1,5 +1,5 @@
-import { AppConfig, DEFAULT_CONFIG } from "../types/index.ts";
-import { CONFIG_KEY } from "../constants.ts";
+import { AppConfig, DEFAULT_CONFIG } from "../types/index";
+import { CONFIG_KEY } from "../constants";
 
 export function loadConfig(): AppConfig {
   try {

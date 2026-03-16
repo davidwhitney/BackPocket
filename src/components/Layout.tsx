@@ -1,8 +1,8 @@
 import { type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { type NetworkStatus } from "../hooks/useNetworkStatus.ts";
-import { AppLogoIcon, BookmarkIcon, PlusCircleIcon, SettingsIcon } from "./Icons.tsx";
-import { StatusIndicator } from "./StatusIndicator.tsx";
+import { type NetworkStatus } from "../hooks/useNetworkStatus";
+import { AppLogoIcon, BookmarkIcon, PlusCircleIcon, SettingsIcon } from "./Icons";
+import { StatusIndicator } from "./StatusIndicator";
 
 interface LayoutProps {
   networkStatus: NetworkStatus;

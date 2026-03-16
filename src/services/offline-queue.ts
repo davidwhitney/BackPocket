@@ -1,5 +1,5 @@
 import { openDB } from "idb";
-import { QUEUE_DB_NAME, QUEUE_DB_VERSION, SYNC_TAG_SNAPSHOT_QUEUE } from "../constants.ts";
+import { QUEUE_DB_NAME, QUEUE_DB_VERSION, SYNC_TAG_SNAPSHOT_QUEUE } from "../constants";
 
 interface PendingItem {
   id: string;

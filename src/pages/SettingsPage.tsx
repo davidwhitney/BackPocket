@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
-import { AppConfig, StorageProvider, ViewMode } from "../types/index.ts";
-import { exportAllData, importAllData } from "../services/storage.ts";
-import { isFileSystemAccessSupported } from "../services/folder-sync.ts";
-import { useConfirm } from "../hooks/useConfirm.ts";
-import { FolderSyncConfig } from "./settings/FolderSyncConfig.tsx";
-import { OneDriveConfig } from "./settings/OneDriveConfig.tsx";
-import { DropboxConfig } from "./settings/DropboxConfig.tsx";
+import { AppConfig, StorageProvider, ViewMode } from "../types/index";
+import { exportAllData, importAllData } from "../services/storage";
+import { isFileSystemAccessSupported } from "../services/folder-sync";
+import { useConfirm } from "../hooks/useConfirm";
+import { FolderSyncConfig } from "./settings/FolderSyncConfig";
+import { OneDriveConfig } from "./settings/OneDriveConfig";
+import { DropboxConfig } from "./settings/DropboxConfig";
 
 interface Props {
   config: {

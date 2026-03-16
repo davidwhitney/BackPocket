@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ViewMode } from "../types/index.ts";
-import { type BookmarkService } from "../hooks/useBookmarks.ts";
-import { useBookmarkSearch } from "../hooks/useBookmarkSearch.ts";
-import { BookmarkListView } from "../components/BookmarkListView.tsx";
+import { ViewMode } from "../types/index";
+import { type BookmarkService } from "../hooks/useBookmarks";
+import { useBookmarkSearch } from "../hooks/useBookmarkSearch";
+import { BookmarkListView } from "../components/BookmarkListView";
 
 interface Props {
   bookmarks: BookmarkService;

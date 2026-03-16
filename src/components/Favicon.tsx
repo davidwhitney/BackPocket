@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getFaviconUrl } from "../utils/format.ts";
+import { getFaviconUrl } from "../utils/format";
 
 interface Props {
   url: string;

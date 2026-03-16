@@ -1,4 +1,4 @@
-import { AppConfig } from "../../types/index.ts";
+import { AppConfig } from "../../types/index";
 
 interface Props {
   config: AppConfig;

@@ -1,7 +1,7 @@
 import { openDB, IDBPDatabase } from "idb";
-import type { Bookmark, BookmarkIndex, PageSnapshot } from "../../types/index.ts";
-import type { StorageEngine } from "./StorageEngine.ts";
-import { DB_NAME, DB_VERSION } from "../../constants.ts";
+import type { Bookmark, BookmarkIndex, PageSnapshot } from "../../types/index";
+import type { StorageEngine } from "./StorageEngine";
+import { DB_NAME, DB_VERSION } from "../../constants";
 
 export class IdbStorageEngine implements StorageEngine {
   private dbPromise: Promise<IDBPDatabase> | null = null;

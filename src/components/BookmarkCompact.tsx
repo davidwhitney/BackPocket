@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
-import { Bookmark, BookmarkActions } from "../types/index.ts";
-import { timeAgo, getDomain } from "../utils/format.ts";
-import { shareUrl } from "../utils/share.ts";
-import { useBookmarkDelete } from "../hooks/useBookmarkDelete.ts";
-import { CheckIcon, CircleIcon, ArchiveIcon, ShareIcon, TrashIcon } from "./Icons.tsx";
-import { Favicon } from "./Favicon.tsx";
-import { BookmarkTags } from "./BookmarkTags.tsx";
+import { Bookmark, BookmarkActions } from "../types/index";
+import { timeAgo, getDomain } from "../utils/format";
+import { shareUrl } from "../utils/share";
+import { useBookmarkDelete } from "../hooks/useBookmarkDelete";
+import { CheckIcon, CircleIcon, ArchiveIcon, ShareIcon, TrashIcon } from "./Icons";
+import { Favicon } from "./Favicon";
+import { BookmarkTags } from "./BookmarkTags";
 
 const ICON_SIZE = 14;
 

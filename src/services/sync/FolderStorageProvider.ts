@@ -1,5 +1,5 @@
-import type { BookmarkIndex, PageSnapshot, AppConfig } from "../../types/index.ts";
-import type { ExternalStorageProvider, SyncResult, PullResult } from "./ExternalStorageProvider.ts";
+import type { BookmarkIndex, PageSnapshot, AppConfig } from "../../types/index";
+import type { ExternalStorageProvider, SyncResult, PullResult } from "./ExternalStorageProvider";
 import {
   restoreHandle,
   getDirHandle,
@@ -8,7 +8,7 @@ import {
   deleteSnapshotFromFolder,
   readIndexFromFolder,
   readAllSnapshotsFromFolder,
-} from "../folder-sync.ts";
+} from "../folder-sync";
 
 export class FolderStorageProvider implements ExternalStorageProvider {
   readonly requiresOnline = false;

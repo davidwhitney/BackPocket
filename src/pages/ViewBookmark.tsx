@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
-import { Bookmark, BookmarkStatus, PageSnapshot } from "../types/index.ts";
-import { getBookmark, getSnapshot } from "../services/storage.ts";
-import { shareUrl } from "../utils/share.ts";
-import { ArrowLeftIcon, ShareIcon } from "../components/Icons.tsx";
-import { useBookmarkDelete } from "../hooks/useBookmarkDelete.ts";
+import { Bookmark, BookmarkStatus, PageSnapshot } from "../types/index";
+import { getBookmark, getSnapshot } from "../services/storage";
+import { shareUrl } from "../utils/share";
+import { ArrowLeftIcon, ShareIcon } from "../components/Icons";
+import { useBookmarkDelete } from "../hooks/useBookmarkDelete";
 
 interface Props {
   bookmarks: {

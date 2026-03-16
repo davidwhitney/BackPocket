@@ -1,7 +1,7 @@
-import type { StorageProvider } from "../../types/index.ts";
-import type { ExternalStorageProvider } from "./ExternalStorageProvider.ts";
-import { FolderStorageProvider } from "./FolderStorageProvider.ts";
-import { OneDriveStorageProvider } from "./OneDriveStorageProvider.ts";
+import type { StorageProvider } from "../../types/index";
+import type { ExternalStorageProvider } from "./ExternalStorageProvider";
+import { FolderStorageProvider } from "./FolderStorageProvider";
+import { OneDriveStorageProvider } from "./OneDriveStorageProvider";
 
 const providers: Partial<Record<StorageProvider, ExternalStorageProvider>> = {
   folder: new FolderStorageProvider(),

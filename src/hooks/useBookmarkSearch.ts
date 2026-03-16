@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
-import { Bookmark } from "../types/index.ts";
-import { useDebounce } from "./useDebounce.ts";
-import { SEARCH_DEBOUNCE_MS } from "../constants.ts";
+import { Bookmark } from "../types/index";
+import { useDebounce } from "./useDebounce";
+import { SEARCH_DEBOUNCE_MS } from "../constants";
 
 interface BookmarkSearchResult {
   query: string;

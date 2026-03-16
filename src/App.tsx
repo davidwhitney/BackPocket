@@ -1,15 +1,15 @@
 import { Routes, Route } from "react-router-dom";
-import { useConfig } from "./hooks/useConfig.ts";
-import { useBookmarks } from "./hooks/useBookmarks.ts";
-import { useNetworkStatus } from "./hooks/useNetworkStatus.ts";
-import { useSync } from "./hooks/useSync.ts";
-import { useConfirmProvider, ConfirmContext } from "./hooks/useConfirm.ts";
-import { Layout } from "./components/Layout.tsx";
-import { ConfirmDialog } from "./components/ConfirmDialog.tsx";
-import { BookmarkList } from "./pages/BookmarkList.tsx";
-import { AddBookmark } from "./pages/AddBookmark.tsx";
-import { ViewBookmark } from "./pages/ViewBookmark.tsx";
-import { SettingsPage } from "./pages/SettingsPage.tsx";
+import { useConfig } from "./hooks/useConfig";
+import { useBookmarks } from "./hooks/useBookmarks";
+import { useNetworkStatus } from "./hooks/useNetworkStatus";
+import { useSync } from "./hooks/useSync";
+import { useConfirmProvider, ConfirmContext } from "./hooks/useConfirm";
+import { Layout } from "./components/Layout";
+import { ConfirmDialog } from "./components/ConfirmDialog";
+import { BookmarkList } from "./pages/BookmarkList";
+import { AddBookmark } from "./pages/AddBookmark";
+import { ViewBookmark } from "./pages/ViewBookmark";
+import { SettingsPage } from "./pages/SettingsPage";
 
 export function App() {
   const configHook = useConfig();

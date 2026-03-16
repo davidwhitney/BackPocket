@@ -1,10 +1,10 @@
 import { useRef, useCallback, useEffect } from "react";
-import { AppConfig } from "../types/index.ts";
-import { loadIndex } from "../services/storage.ts";
-import { getExternalProvider } from "../services/sync/registry.ts";
-import { setOneDriveConfigSetter } from "../services/sync/OneDriveStorageProvider.ts";
-import { useDebounce } from "./useDebounce.ts";
-import { SYNC_DEBOUNCE_MS } from "../constants.ts";
+import { AppConfig } from "../types/index";
+import { loadIndex } from "../services/storage";
+import { getExternalProvider } from "../services/sync/registry";
+import { setOneDriveConfigSetter } from "../services/sync/OneDriveStorageProvider";
+import { useDebounce } from "./useDebounce";
+import { SYNC_DEBOUNCE_MS } from "../constants";
 
 interface UseSyncOptions {
   config: AppConfig;

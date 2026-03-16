@@ -1,4 +1,4 @@
-import type { AppConfig } from "../types/index.ts";
+import type { AppConfig } from "../types/index";
 
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0";
 const MS_TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";

@@ -1,4 +1,4 @@
-import { type NetworkStatus } from "../hooks/useNetworkStatus.ts";
+import { type NetworkStatus } from "../hooks/useNetworkStatus";
 
 interface Props {
   networkStatus: NetworkStatus;

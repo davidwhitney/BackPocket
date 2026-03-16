@@ -1,7 +1,7 @@
-import { Bookmark, BookmarkActions, ViewMode } from "../types/index.ts";
-import { BookmarkCard } from "./BookmarkCard.tsx";
-import { BookmarkCompact } from "./BookmarkCompact.tsx";
-import { BookmarkRow } from "./BookmarkRow.tsx";
+import { Bookmark, BookmarkActions, ViewMode } from "../types/index";
+import { BookmarkCard } from "./BookmarkCard";
+import { BookmarkCompact } from "./BookmarkCompact";
+import { BookmarkRow } from "./BookmarkRow";
 
 interface Props extends BookmarkActions {
   bookmarks: Bookmark[];

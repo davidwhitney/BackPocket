@@ -1,7 +1,7 @@
-import type { BookmarkIndex, PageSnapshot, AppConfig } from "../../types/index.ts";
-import type { ExternalStorageProvider, SyncResult, PullResult } from "./ExternalStorageProvider.ts";
-import { syncToOneDrive, syncFromOneDrive } from "../onedrive.ts";
-import { exportAllData } from "../storage.ts";
+import type { BookmarkIndex, PageSnapshot, AppConfig } from "../../types/index";
+import type { ExternalStorageProvider, SyncResult, PullResult } from "./ExternalStorageProvider";
+import { syncToOneDrive, syncFromOneDrive } from "../onedrive";
+import { exportAllData } from "../storage";
 
 // OneDrive uses the full export format (index + snapshots in one file)
 // because the Graph API round-trips are expensive — one file is better than N.

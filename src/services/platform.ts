@@ -1,7 +1,7 @@
-import type { PageFetchStrategy } from "./strategies/PageFetchStrategy.ts";
-import type { StorageEngine } from "./engines/StorageEngine.ts";
-import { PwaPageFetchStrategy } from "./strategies/PwaPageFetchStrategy.ts";
-import { IdbStorageEngine } from "./engines/IdbStorageEngine.ts";
+import type { PageFetchStrategy } from "./strategies/PageFetchStrategy";
+import type { StorageEngine } from "./engines/StorageEngine";
+import { PwaPageFetchStrategy } from "./strategies/PwaPageFetchStrategy";
+import { IdbStorageEngine } from "./engines/IdbStorageEngine";
 
 export type Platform = "pwa" | "android" | "ios";
 

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { fetchPageMetadata } from "../services/storage.ts";
-import { METADATA_DEBOUNCE_MS } from "../constants.ts";
-import { useDebouncedRef } from "./useDebounce.ts";
+import { fetchPageMetadata } from "../services/storage";
+import { METADATA_DEBOUNCE_MS } from "../constants";
+import { useDebouncedRef } from "./useDebounce";
 
 interface MetadataFetchResult {
   fetching: boolean;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { getPendingCount, processQueue } from "../services/offline-queue.ts";
-import { fetchPendingSnapshots } from "../services/storage.ts";
-import { SW_MESSAGES } from "../constants.ts";
+import { getPendingCount, processQueue } from "../services/offline-queue";
+import { fetchPendingSnapshots } from "../services/storage";
+import { SW_MESSAGES } from "../constants";
 
 export interface NetworkStatus {
   online: boolean;

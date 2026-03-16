@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { AppConfig } from "../types/index.ts";
-import { loadConfig, saveConfig } from "../services/config.ts";
+import { AppConfig } from "../types/index";
+import { loadConfig, saveConfig } from "../services/config";
 
 export function useConfig() {
   const [config, setConfigState] = useState<AppConfig>(loadConfig);

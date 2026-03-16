@@ -1,4 +1,4 @@
-import type { PageFetchStrategy, FetchPageResult } from "./PageFetchStrategy.ts";
+import type { PageFetchStrategy, FetchPageResult } from "./PageFetchStrategy";
 
 export class PwaPageFetchStrategy implements PageFetchStrategy {
   async fetchPage(url: string, signal?: AbortSignal): Promise<FetchPageResult | null> {
