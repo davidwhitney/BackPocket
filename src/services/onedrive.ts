@@ -227,6 +227,20 @@ export async function downloadFile(
   return resp.text();
 }
 
+export async function getFileETag(
+  accessToken: string,
+  filename: string,
+): Promise<string | null> {
+  // Metadata request — no file content downloaded
+  const resp = await graphFetch(
+    accessToken,
+    `/me/drive/root:/${APP_FOLDER}/${filename}?$select=eTag`,
+  );
+  if (!resp.ok) return null;
+  const data = await resp.json();
+  return data.eTag || null;
+}
+
 // --- High-level sync API ---
 
 export async function syncToOneDrive(

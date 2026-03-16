@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect } from "react";
 import { AppConfig } from "../types/index";
-import { loadIndex } from "../services/storage";
+import { loadIndex, importAllData } from "../services/storage";
 import { getExternalProvider } from "../services/sync/registry";
 import { setOneDriveConfigSetter } from "../services/sync/OneDriveStorageProvider";
 import { useDebounce } from "./useDebounce";
@@ -9,25 +9,52 @@ import { SYNC_DEBOUNCE_MS } from "../constants";
 interface UseSyncOptions {
   config: AppConfig;
   setConfig: (update: Partial<AppConfig>) => void;
+  onDataPulled?: () => void;
 }
 
-export function useSync({ config, setConfig }: UseSyncOptions) {
+export function useSync({ config, setConfig, onDataPulled }: UseSyncOptions) {
   const syncingRef = useRef(false);
   const configRef = useRef(config);
   configRef.current = config;
   const setConfigRef = useRef(setConfig);
   setConfigRef.current = setConfig;
+  const onDataPulledRef = useRef(onDataPulled);
+  onDataPulledRef.current = onDataPulled;
 
-  // Keep OneDrive provider's config setter in sync
   useEffect(() => {
     setOneDriveConfigSetter(setConfig);
   }, [setConfig]);
 
-  // Initialise the active provider on mount / provider change
   useEffect(() => {
     const provider = getExternalProvider(config.storageProvider);
     provider?.init(config);
   }, [config.storageProvider]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pullRemote = useCallback(async () => {
+    const cfg = configRef.current;
+    const provider = getExternalProvider(cfg.storageProvider);
+    if (!provider) return;
+    if (provider.requiresOnline && !navigator.onLine) return;
+
+    if (!provider.isReady(cfg)) {
+      await provider.init(cfg);
+      if (!provider.isReady(cfg)) return;
+    }
+
+    // Check if remote has changed before downloading
+    const changed = await provider.hasRemoteChanges(cfg);
+    if (!changed) return;
+
+    try {
+      const result = await provider.pull(cfg);
+      if (result.success && result.data) {
+        await importAllData(result.data);
+        onDataPulledRef.current?.();
+      }
+    } catch (err) {
+      console.warn("Pull failed:", err);
+    }
+  }, []);
 
   const syncNow = useCallback(async () => {
     if (syncingRef.current) return;
@@ -37,7 +64,6 @@ export function useSync({ config, setConfig }: UseSyncOptions) {
     if (!provider) return;
     if (provider.requiresOnline && !navigator.onLine) return;
 
-    // Ensure provider is initialised
     if (!provider.isReady(cfg)) {
       await provider.init(cfg);
       if (!provider.isReady(cfg)) return;
@@ -72,18 +98,23 @@ export function useSync({ config, setConfig }: UseSyncOptions) {
   useEffect(() => {
     const provider = getExternalProvider(config.storageProvider);
     if (!provider) return;
-    const handler = () => scheduleSync();
+    const handler = () => {
+      pullRemote().then(() => scheduleSync());
+    };
     window.addEventListener("online", handler);
     return () => window.removeEventListener("online", handler);
-  }, [config.storageProvider, scheduleSync]);
+  }, [config.storageProvider, scheduleSync, pullRemote]);
 
-  // Initial sync on app launch
+  // On startup: pull remote changes, then push local
   useEffect(() => {
     const provider = getExternalProvider(config.storageProvider);
     if (!provider) return;
-    const timer = setTimeout(() => scheduleSync(), 500);
+    const timer = setTimeout(async () => {
+      await pullRemote();
+      scheduleSync();
+    }, 500);
     return () => clearTimeout(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { scheduleSync, syncNow };
+  return { scheduleSync, syncNow, pullRemote };
 }

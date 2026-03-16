@@ -52,4 +52,9 @@ export class FolderStorageProvider implements ExternalStorageProvider {
     const data = JSON.stringify({ index, snapshots });
     return { success: true, data };
   }
+
+  async hasRemoteChanges(_config: AppConfig): Promise<boolean> {
+    // Folder sync relies on OS-level file change detection — always pull
+    return true;
+  }
 }

@@ -1,3 +1,4 @@
+import { useRef, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { useConfig } from "./hooks/useConfig";
 import { useBookmarks } from "./hooks/useBookmarks";
@@ -13,11 +14,23 @@ import { SettingsPage } from "./pages/SettingsPage";
 
 export function App() {
   const configHook = useConfig();
+
+  // Use a ref so useBookmarks can call scheduleSync without a circular dep
+  const scheduleSyncRef = useRef<() => void>(() => {});
+
+  const bookmarkHook = useBookmarks(() => scheduleSyncRef.current());
+
   const { scheduleSync, syncNow } = useSync({
     config: configHook.config,
     setConfig: configHook.setConfig,
+    onDataPulled: bookmarkHook.refresh,
   });
-  const bookmarkHook = useBookmarks(scheduleSync);
+
+  // Keep the ref in sync
+  useEffect(() => {
+    scheduleSyncRef.current = scheduleSync;
+  }, [scheduleSync]);
+
   const networkStatus = useNetworkStatus();
   const { dialogState, confirm } = useConfirmProvider();
   const viewMode = configHook.config.viewMode;

@@ -30,4 +30,7 @@ export interface ExternalStorageProvider {
 
   /** Pull all data from the remote (for manual restore) */
   pull(config: AppConfig): Promise<PullResult>;
+
+  /** Check if remote has changed since last sync (cheap/fast). Returns true if unknown. */
+  hasRemoteChanges(config: AppConfig): Promise<boolean>;
 }

@@ -36,6 +36,7 @@ export interface AppConfig {
   dropbox?: { accessToken: string; refreshToken: string; clientId: string };
   icloud?: { accessToken: string };
   lastSync?: string;
+  lastRemoteETag?: string;
 }
 
 export interface BookmarkActions {
