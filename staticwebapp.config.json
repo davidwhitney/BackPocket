@@ -1,12 +1,12 @@
 {
-    "trailingSlash": "auto",
-    "navigationFallback": {
-      "rewrite": "index.html",
-      "exclude": ["/images/*", "/public/*"]
-    },
-    "globalHeaders": {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, GET, OPTIONS, HEAD",
-      "X-Clacks-Overhead": "GNU Terry Pratchett"
-    }
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/assets/*", "/api/*", "*.css", "*.js", "*.svg", "*.png", "*.webmanifest"]
+  },
+  "globalHeaders": {
+    "X-Clacks-Overhead": "GNU Terry Pratchett"
+  },
+  "platform": {
+    "apiRuntime": "node:20"
+  }
 }
