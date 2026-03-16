@@ -4,8 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "swa start http://localhost:5173 --run \"npm run vite\" --api-location api",
-    "dev:standalone": "concurrently \"npm run server:dev\" \"npm run vite\"",
+    "dev": "concurrently \"npm run server:dev\" \"npm run vite\"",
+    "dev:azure": "swa start http://localhost:5173 --run \"npm run vite\" --api-location api",
     "vite": "vite",
     "server:dev": "tsx watch --env-file=.env server.ts",
     "server": "tsx --env-file=.env server.ts",
