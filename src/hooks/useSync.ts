@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect } from "react";
 import { AppConfig } from "../types/index";
-import { loadIndex, importAllData } from "../services/storage";
+import { loadIndex, mergeRemoteData } from "../services/storage";
 import { getExternalProvider } from "../services/sync/registry";
 import { setOneDriveConfigSetter } from "../services/sync/OneDriveStorageProvider";
 import { useDebounce } from "./useDebounce";
@@ -48,7 +48,7 @@ export function useSync({ config, setConfig, onDataPulled }: UseSyncOptions) {
     try {
       const result = await provider.pull(cfg);
       if (result.success && result.data) {
-        await importAllData(result.data);
+        await mergeRemoteData(result.data, cfg.lastSync);
         onDataPulledRef.current?.();
       }
     } catch (err) {
