@@ -1,5 +1,5 @@
 import { app, HttpRequest, HttpResponseInit } from "@azure/functions";
-import { fetchAndExtract } from "../extract-content";
+import { fetchAndExtract } from "../extract-content.js";
 
 app.http("fetch-page", {
   methods: ["GET"],
