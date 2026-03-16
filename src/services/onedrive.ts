@@ -1,7 +1,98 @@
 import type { AppConfig } from "../types/index.ts";
 
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0";
+const MS_TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
+const MS_AUTH_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
 const APP_FOLDER = "BackPocketDb";
+const PKCE_STORAGE_KEY = "backpocket_pkce_verifier";
+
+// --- PKCE helpers ---
+
+function generateCodeVerifier(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return base64UrlEncode(array);
+}
+
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+  return base64UrlEncode(new Uint8Array(digest));
+}
+
+function base64UrlEncode(bytes: Uint8Array): string {
+  const binString = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
+  return btoa(binString).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// --- Auth flow (fully client-side) ---
+
+export function getOneDriveRedirectUri(): string {
+  return `${window.location.origin}/settings`;
+}
+
+export async function startOneDriveAuth(clientId: string): Promise<void> {
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+  // Store verifier for after redirect
+  sessionStorage.setItem(PKCE_STORAGE_KEY, codeVerifier);
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: "code",
+    redirect_uri: getOneDriveRedirectUri(),
+    scope: "Files.ReadWrite offline_access",
+    response_mode: "query",
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256",
+    state: "onedrive",
+  });
+
+  window.location.href = `${MS_AUTH_URL}?${params}`;
+}
+
+export async function exchangeOneDriveCode(
+  clientId: string,
+  code: string,
+): Promise<{ accessToken: string; refreshToken: string; expiresIn: number } | null> {
+  const codeVerifier = sessionStorage.getItem(PKCE_STORAGE_KEY);
+  sessionStorage.removeItem(PKCE_STORAGE_KEY);
+
+  if (!codeVerifier) return null;
+
+  try {
+    const resp = await fetch(MS_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        code,
+        redirect_uri: getOneDriveRedirectUri(),
+        grant_type: "authorization_code",
+        code_verifier: codeVerifier,
+        scope: "Files.ReadWrite offline_access",
+      }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      console.error("OneDrive token exchange failed:", err);
+      return null;
+    }
+
+    const data = await resp.json();
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token || "",
+      expiresIn: data.expires_in || 3600,
+    };
+  } catch (err) {
+    console.error("OneDrive token exchange error:", err);
+    return null;
+  }
+}
+
+// --- Token management ---
 
 interface OneDriveTokens {
   accessToken: string;
@@ -14,7 +105,7 @@ function getTokens(config: AppConfig): OneDriveTokens | null {
   return {
     accessToken: config.onedrive.accessToken,
     refreshToken: config.onedrive.refreshToken,
-    expiresAt: (config.onedrive as any).expiresAt ?? 0,
+    expiresAt: config.onedrive.expiresAt ?? 0,
   };
 }
 
@@ -26,14 +117,17 @@ async function refreshAccessToken(
   if (!tokens?.refreshToken || !config.onedrive?.clientId) return null;
 
   try {
-    const resp = await fetch("/api/onedrive/refresh", {
+    const resp = await fetch(MS_TOKEN_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientId: config.onedrive.clientId,
-        refreshToken: tokens.refreshToken,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: config.onedrive.clientId,
+        refresh_token: tokens.refreshToken,
+        grant_type: "refresh_token",
+        scope: "Files.ReadWrite offline_access",
       }),
     });
+
     if (!resp.ok) return null;
 
     const data = await resp.json();
@@ -42,6 +136,7 @@ async function refreshAccessToken(
         ...config.onedrive,
         accessToken: data.access_token,
         refreshToken: data.refresh_token || tokens.refreshToken,
+        expiresAt: Date.now() + (data.expires_in || 3600) * 1000,
       },
     });
     return data.access_token;
@@ -57,12 +152,10 @@ async function getAccessToken(
   const tokens = getTokens(config);
   if (!tokens) return null;
 
-  // If token is expired (with 60s buffer), refresh it
   if (tokens.expiresAt > 0 && Date.now() > tokens.expiresAt - 60_000) {
     return refreshAccessToken(config, saveConfig);
   }
 
-  // Test the token with a lightweight call
   try {
     const resp = await fetch(`${GRAPH_BASE}/me/drive`, {
       headers: { Authorization: `Bearer ${tokens.accessToken}` },
@@ -74,6 +167,8 @@ async function getAccessToken(
     return null;
   }
 }
+
+// --- Graph API operations ---
 
 async function graphFetch(
   accessToken: string,
@@ -90,7 +185,6 @@ async function graphFetch(
 }
 
 async function ensureAppFolder(accessToken: string): Promise<void> {
-  // Try to get the folder — create it if it doesn't exist
   const resp = await graphFetch(accessToken, `/me/drive/root:/${APP_FOLDER}`);
   if (resp.ok) return;
 
@@ -113,15 +207,10 @@ export async function uploadFile(
   content: string,
 ): Promise<boolean> {
   await ensureAppFolder(accessToken);
-
   const resp = await graphFetch(
     accessToken,
     `/me/drive/root:/${APP_FOLDER}/${filename}:/content`,
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: content,
-    },
+    { method: "PUT", headers: { "Content-Type": "application/json" }, body: content },
   );
   return resp.ok;
 }
@@ -136,18 +225,6 @@ export async function downloadFile(
   );
   if (!resp.ok) return null;
   return resp.text();
-}
-
-export async function listFiles(
-  accessToken: string,
-): Promise<string[]> {
-  const resp = await graphFetch(
-    accessToken,
-    `/me/drive/root:/${APP_FOLDER}:/children?$select=name`,
-  );
-  if (!resp.ok) return [];
-  const data = await resp.json();
-  return (data.value || []).map((f: any) => f.name);
 }
 
 // --- High-level sync API ---
@@ -187,15 +264,4 @@ export async function syncFromOneDrive(
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Download failed" };
   }
-}
-
-export function getOneDriveAuthUrl(clientId: string, redirectUri: string): string {
-  const params = new URLSearchParams({
-    client_id: clientId,
-    response_type: "code",
-    redirect_uri: redirectUri,
-    scope: "Files.ReadWrite.AppFolder offline_access",
-    response_mode: "query",
-  });
-  return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`;
 }

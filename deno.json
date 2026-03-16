@@ -36,7 +36,7 @@
   },
   "tasks": {
     "dev": "deno task server & deno task vite",
-    "server": "deno run --allow-net --allow-read --allow-env server.ts",
+    "server": "deno run --allow-net --allow-read --allow-env --env=.env server.ts",
     "vite": "deno run -A npm:vite@6",
     "build": "deno run -A npm:vite@6 build",
     "preview": "deno task server",

@@ -2,18 +2,11 @@ import { serveDir } from "jsr:@std/http/file-server";
 import { DOMParser } from "jsr:@b-fuze/deno-dom";
 
 const PORT = parseInt(Deno.env.get("PORT") || "8000");
-
 Deno.serve({ port: PORT }, async (req: Request) => {
   const url = new URL(req.url);
 
   if (url.pathname === "/api/fetch-page") {
     return handleFetchPage(url);
-  }
-  if (url.pathname === "/api/onedrive/callback") {
-    return handleOneDriveCallback(url);
-  }
-  if (url.pathname === "/api/onedrive/refresh" && req.method === "POST") {
-    return handleOneDriveRefresh(req);
   }
 
   const response = await serveDir(req, {
@@ -174,100 +167,3 @@ function extractArticleContent(html: string, _url: string): {
 }
 
 // ============================================================
-// OneDrive OAuth
-// ============================================================
-
-const MS_TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-
-async function handleOneDriveCallback(reqUrl: URL): Promise<Response> {
-  const code = reqUrl.searchParams.get("code");
-  const clientId = reqUrl.searchParams.get("state"); // We pass clientId as state
-  const error = reqUrl.searchParams.get("error");
-
-  if (error) {
-    return redirectToSettings(`onedrive_error=${encodeURIComponent(reqUrl.searchParams.get("error_description") || error)}`);
-  }
-
-  if (!code || !clientId) {
-    return redirectToSettings("onedrive_error=missing_code");
-  }
-
-  const redirectUri = `${reqUrl.origin}/api/onedrive/callback`;
-
-  try {
-    const tokenResp = await fetch(MS_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: clientId,
-        code,
-        redirect_uri: redirectUri,
-        grant_type: "authorization_code",
-        scope: "Files.ReadWrite.AppFolder offline_access",
-      }),
-    });
-
-    if (!tokenResp.ok) {
-      const err = await tokenResp.text();
-      console.error("OneDrive token exchange failed:", err);
-      return redirectToSettings("onedrive_error=token_exchange_failed");
-    }
-
-    const tokens = await tokenResp.json();
-
-    // Pass tokens back to the client via URL fragment (not exposed to server logs)
-    const params = new URLSearchParams({
-      onedrive_connected: "true",
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token || "",
-      expires_in: String(tokens.expires_in || 3600),
-    });
-
-    return redirectToSettings(params.toString());
-  } catch (err) {
-    console.error("OneDrive callback error:", err);
-    return redirectToSettings("onedrive_error=server_error");
-  }
-}
-
-async function handleOneDriveRefresh(req: Request): Promise<Response> {
-  try {
-    const body = await req.json();
-    const { clientId, refreshToken } = body;
-
-    if (!clientId || !refreshToken) {
-      return Response.json({ error: "Missing clientId or refreshToken" }, { status: 400 });
-    }
-
-    const tokenResp = await fetch(MS_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: clientId,
-        refresh_token: refreshToken,
-        grant_type: "refresh_token",
-        scope: "Files.ReadWrite.AppFolder offline_access",
-      }),
-    });
-
-    if (!tokenResp.ok) {
-      return Response.json({ error: "Refresh failed" }, { status: 502 });
-    }
-
-    const tokens = await tokenResp.json();
-    return Response.json({
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token || refreshToken,
-      expires_in: tokens.expires_in,
-    });
-  } catch {
-    return Response.json({ error: "Server error" }, { status: 500 });
-  }
-}
-
-function redirectToSettings(query: string): Response {
-  return new Response(null, {
-    status: 302,
-    headers: { Location: `/settings?${query}` },
-  });
-}

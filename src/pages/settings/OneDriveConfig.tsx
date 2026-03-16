@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AppConfig } from "../../types/index.ts";
 import { importAllData } from "../../services/storage.ts";
-import { getOneDriveAuthUrl } from "../../services/onedrive.ts";
+import { startOneDriveAuth, exchangeOneDriveCode } from "../../services/onedrive.ts";
 import { getExternalProvider } from "../../services/sync/registry.ts";
+
+const CLIENT_ID = import.meta.env.BACKPOCKET_ONEDRIVE_CLIENT_ID;
 
 interface Props {
   config: AppConfig;
@@ -14,41 +16,51 @@ interface Props {
 
 export function OneDriveConfig({ config, setConfig, onDataChange, syncNow }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [clientId, setClientId] = useState(config.onedrive?.clientId || "");
   const [status, setStatus] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const isConnected = !!config.onedrive?.accessToken;
 
+  // Handle OAuth callback — code arrives as ?code=...&state=onedrive
   useEffect(() => {
-    if (searchParams.get("onedrive_connected") === "true") {
-      const accessToken = searchParams.get("access_token") || "";
-      const refreshToken = searchParams.get("refresh_token") || "";
-      const expiresIn = parseInt(searchParams.get("expires_in") || "3600");
-      if (accessToken) {
-        setConfig({
-          onedrive: { clientId: config.onedrive?.clientId || clientId, accessToken, refreshToken, expiresAt: Date.now() + expiresIn * 1000 },
-        });
-        setStatus("Connected to OneDrive");
-      }
-      searchParams.delete("onedrive_connected");
-      searchParams.delete("access_token");
-      searchParams.delete("refresh_token");
-      searchParams.delete("expires_in");
+    const code = searchParams.get("code");
+    const state = searchParams.get("state");
+
+    if (code && state === "onedrive") {
+      searchParams.delete("code");
+      searchParams.delete("state");
+      searchParams.delete("session_state");
       setSearchParams(searchParams, { replace: true });
+
+      setStatus("Connecting...");
+      exchangeOneDriveCode(CLIENT_ID, code).then((tokens) => {
+        if (tokens) {
+          setConfig({
+            onedrive: {
+              clientId: CLIENT_ID,
+              accessToken: tokens.accessToken,
+              refreshToken: tokens.refreshToken,
+              expiresAt: Date.now() + tokens.expiresIn * 1000,
+            },
+          });
+          setStatus("Connected to OneDrive");
+        } else {
+          setStatus("Error: failed to connect");
+        }
+      });
     }
-    const error = searchParams.get("onedrive_error");
+
+    const error = searchParams.get("error");
     if (error) {
-      setStatus(`Error: ${error}`);
-      searchParams.delete("onedrive_error");
+      setStatus(`Error: ${searchParams.get("error_description") || error}`);
+      searchParams.delete("error");
+      searchParams.delete("error_description");
       setSearchParams(searchParams, { replace: true });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConnect = () => {
-    if (!clientId.trim()) { setStatus("Enter a Client ID first"); return; }
-    setConfig({ onedrive: { clientId: clientId.trim(), accessToken: "", refreshToken: "" } });
-    const redirectUri = `${window.location.origin}/api/onedrive/callback`;
-    window.location.href = getOneDriveAuthUrl(clientId.trim(), redirectUri) + `&state=${encodeURIComponent(clientId.trim())}`;
+    setConfig({ onedrive: { clientId: CLIENT_ID, accessToken: "", refreshToken: "" } });
+    startOneDriveAuth(CLIENT_ID);
   };
 
   const handleDisconnect = () => { setConfig({ onedrive: undefined }); setStatus(null); };
@@ -82,6 +94,14 @@ export function OneDriveConfig({ config, setConfig, onDataChange, syncNow }: Pro
     setSyncing(false);
   };
 
+  if (!CLIENT_ID) {
+    return (
+      <div className="provider-config">
+        <div className="info-box">OneDrive integration is not configured. Set BACKPOCKET_ONEDRIVE_CLIENT_ID in your .env file.</div>
+      </div>
+    );
+  }
+
   return (
     <div className="provider-config">
       {isConnected ? (
@@ -97,21 +117,10 @@ export function OneDriveConfig({ config, setConfig, onDataChange, syncNow }: Pro
           {config.lastSync && <p className="help-text">Last sync: {new Date(config.lastSync).toLocaleString()}</p>}
         </>
       ) : (
-        <>
-          <div className="form-group">
-            <label>Client ID</label>
-            <input type="text" placeholder="Azure App Registration Client ID" value={clientId} onChange={(e) => setClientId(e.target.value)} />
-            <p className="help-text">
-              Create an app at{" "}
-              <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps" target="_blank" rel="noopener noreferrer" className="settings-link">Azure App Registrations</a>
-              {" "}with redirect URI: <code>{window.location.origin}/api/onedrive/callback</code>
-            </p>
-          </div>
-          <button className="btn btn-secondary" onClick={handleConnect} disabled={!clientId.trim()}>Connect OneDrive</button>
-        </>
+        <button className="btn btn-secondary" onClick={handleConnect}>Connect OneDrive</button>
       )}
       {status && <p className={`import-status ${status.startsWith("Error") ? "import-error" : ""}`}>{status}</p>}
-      <p className="help-text">Data is stored in OneDrive/Apps/BackPocketDb/</p>
+      <p className="help-text">Data is stored in OneDrive/BackPocketDb/</p>
     </div>
   );
 }
