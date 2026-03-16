@@ -9,6 +9,12 @@ Deno.serve({ port: PORT }, async (req: Request) => {
   if (url.pathname === "/api/fetch-page") {
     return handleFetchPage(url);
   }
+  if (url.pathname === "/api/onedrive/callback") {
+    return handleOneDriveCallback(url);
+  }
+  if (url.pathname === "/api/onedrive/refresh" && req.method === "POST") {
+    return handleOneDriveRefresh(req);
+  }
 
   const response = await serveDir(req, {
     fsRoot: "dist",
@@ -26,6 +32,10 @@ Deno.serve({ port: PORT }, async (req: Request) => {
 });
 
 console.log(`BackPocket server running on http://localhost:${PORT}`);
+
+// ============================================================
+// Page fetch + content extraction
+// ============================================================
 
 async function handleFetchPage(reqUrl: URL): Promise<Response> {
   const targetUrl = reqUrl.searchParams.get("url");
@@ -85,7 +95,6 @@ async function handleFetchPage(reqUrl: URL): Promise<Response> {
   }
 }
 
-// Selectors for elements that are definitely not article content
 const REMOVE_SELECTORS = [
   "script", "style", "noscript", "iframe", "object", "embed",
   "nav", "header", "footer",
@@ -97,7 +106,6 @@ const REMOVE_SELECTORS = [
   ".related-posts", ".recommended", ".newsletter",
 ].join(", ");
 
-// Selectors that likely contain the main article content, in priority order
 const ARTICLE_SELECTORS = [
   "article",
   "[role='main'] article",
@@ -124,42 +132,35 @@ function extractArticleContent(html: string, _url: string): {
     return { html, title: "", description: "", content: html, textContent: "" };
   }
 
-  // Extract metadata
   const title = doc.querySelector("title")?.textContent?.trim() ||
     doc.querySelector('meta[property="og:title"]')?.getAttribute("content")?.trim() || "";
   const description =
     doc.querySelector('meta[name="description"]')?.getAttribute("content")?.trim() ||
     doc.querySelector('meta[property="og:description"]')?.getAttribute("content")?.trim() || "";
 
-  // Remove noise elements
   for (const el of doc.querySelectorAll(REMOVE_SELECTORS)) {
     el.remove();
   }
 
-  // Try to find the article container
   let articleEl = null;
   for (const selector of ARTICLE_SELECTORS) {
     articleEl = doc.querySelector(selector);
     if (articleEl) break;
   }
 
-  // Fall back to body
   const contentRoot = articleEl || doc.body;
   if (!contentRoot) {
     return { html, title, description, content: "", textContent: "" };
   }
 
-  // Clean up the content further
   for (const el of contentRoot.querySelectorAll(REMOVE_SELECTORS)) {
     el.remove();
   }
 
-  // Remove hidden elements
   for (const el of contentRoot.querySelectorAll("[hidden], [aria-hidden='true'], .hidden, .visually-hidden, .sr-only")) {
     el.remove();
   }
 
-  // Remove empty divs/spans that are just wrappers
   for (const el of contentRoot.querySelectorAll("div, span")) {
     if (!el.textContent?.trim() && !el.querySelector("img, video, picture, figure, svg")) {
       el.remove();
@@ -170,4 +171,103 @@ function extractArticleContent(html: string, _url: string): {
   const textContent = contentRoot.textContent || "";
 
   return { html, title, description, content, textContent };
+}
+
+// ============================================================
+// OneDrive OAuth
+// ============================================================
+
+const MS_TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+
+async function handleOneDriveCallback(reqUrl: URL): Promise<Response> {
+  const code = reqUrl.searchParams.get("code");
+  const clientId = reqUrl.searchParams.get("state"); // We pass clientId as state
+  const error = reqUrl.searchParams.get("error");
+
+  if (error) {
+    return redirectToSettings(`onedrive_error=${encodeURIComponent(reqUrl.searchParams.get("error_description") || error)}`);
+  }
+
+  if (!code || !clientId) {
+    return redirectToSettings("onedrive_error=missing_code");
+  }
+
+  const redirectUri = `${reqUrl.origin}/api/onedrive/callback`;
+
+  try {
+    const tokenResp = await fetch(MS_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        code,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+        scope: "Files.ReadWrite.AppFolder offline_access",
+      }),
+    });
+
+    if (!tokenResp.ok) {
+      const err = await tokenResp.text();
+      console.error("OneDrive token exchange failed:", err);
+      return redirectToSettings("onedrive_error=token_exchange_failed");
+    }
+
+    const tokens = await tokenResp.json();
+
+    // Pass tokens back to the client via URL fragment (not exposed to server logs)
+    const params = new URLSearchParams({
+      onedrive_connected: "true",
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token || "",
+      expires_in: String(tokens.expires_in || 3600),
+    });
+
+    return redirectToSettings(params.toString());
+  } catch (err) {
+    console.error("OneDrive callback error:", err);
+    return redirectToSettings("onedrive_error=server_error");
+  }
+}
+
+async function handleOneDriveRefresh(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    const { clientId, refreshToken } = body;
+
+    if (!clientId || !refreshToken) {
+      return Response.json({ error: "Missing clientId or refreshToken" }, { status: 400 });
+    }
+
+    const tokenResp = await fetch(MS_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+        scope: "Files.ReadWrite.AppFolder offline_access",
+      }),
+    });
+
+    if (!tokenResp.ok) {
+      return Response.json({ error: "Refresh failed" }, { status: 502 });
+    }
+
+    const tokens = await tokenResp.json();
+    return Response.json({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token || refreshToken,
+      expires_in: tokens.expires_in,
+    });
+  } catch {
+    return Response.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+function redirectToSettings(query: string): Response {
+  return new Response(null, {
+    status: 302,
+    headers: { Location: `/settings?${query}` },
+  });
 }

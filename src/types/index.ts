@@ -24,14 +24,15 @@ export interface PageSnapshot {
   fetchedAt: string;
 }
 
-export type StorageProvider = 'local' | 'onedrive' | 'icloud' | 'dropbox';
+export type StorageProvider = 'local' | 'folder' | 'onedrive' | 'icloud' | 'dropbox';
 export type ViewMode = 'card' | 'compact' | 'list';
 
 export interface AppConfig {
   storageProvider: StorageProvider;
   darkMode: boolean | 'system';
   viewMode: ViewMode;
-  onedrive?: { accessToken: string; refreshToken: string; clientId: string };
+  folderName?: string;
+  onedrive?: { accessToken: string; refreshToken: string; clientId: string; expiresAt?: number };
   dropbox?: { accessToken: string; refreshToken: string; clientId: string };
   icloud?: { accessToken: string };
   lastSync?: string;

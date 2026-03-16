@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Bookmark, BookmarkStatus } from "../types/index.ts";
 import {
   loadIndex,
@@ -20,9 +20,11 @@ export interface BookmarkService {
   search: (query: string, deep?: boolean) => Promise<Bookmark[]>;
 }
 
-export function useBookmarks(): BookmarkService {
+export function useBookmarks(onDataChanged?: () => void): BookmarkService {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(true);
+  const onDataChangedRef = useRef(onDataChanged);
+  onDataChangedRef.current = onDataChanged;
 
   const refresh = useCallback(async () => {
     const index = await loadIndex();
@@ -34,13 +36,18 @@ export function useBookmarks(): BookmarkService {
     refresh();
   }, [refresh]);
 
+  const notifyChanged = useCallback(() => {
+    onDataChangedRef.current?.();
+  }, []);
+
   const addBookmark = useCallback(
     async (url: string, title?: string, description?: string) => {
       const bookmark = await storageAdd(url, title, description);
       await refresh();
+      notifyChanged();
       return bookmark;
     },
-    [refresh],
+    [refresh, notifyChanged],
   );
 
   const updateBookmark = useCallback(
@@ -50,16 +57,18 @@ export function useBookmarks(): BookmarkService {
       const updated = { ...existing, ...updates, dateModified: new Date().toISOString() };
       await saveBookmark(updated);
       await refresh();
+      notifyChanged();
     },
-    [bookmarks, refresh],
+    [bookmarks, refresh, notifyChanged],
   );
 
   const removeBookmark = useCallback(
     async (id: string) => {
       await storageDelete(id);
       await refresh();
+      notifyChanged();
     },
-    [refresh],
+    [refresh, notifyChanged],
   );
 
   const setStatus = useCallback(

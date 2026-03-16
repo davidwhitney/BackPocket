@@ -34,3 +34,4 @@ export const FETCH_PAGE_TIMEOUT_MS = 10_000;
 export const NETWORK_TIMEOUT_SECONDS = 15;
 export const METADATA_DEBOUNCE_MS = 600;
 export const SEARCH_DEBOUNCE_MS = 300;
+export const SYNC_DEBOUNCE_MS = 2000;

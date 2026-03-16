@@ -2,12 +2,18 @@ import { Bookmark, BookmarkIndex, PageSnapshot } from "../types/index.ts";
 import { generateId } from "../utils/id.ts";
 import { getPlatformServices } from "./platform.ts";
 import { enqueueSnapshotFetch, getAllPending, dequeueItem } from "./offline-queue.ts";
+import { writeSnapshotToFolder, deleteSnapshotFromFolder, getDirHandle } from "./folder-sync.ts";
+import { loadConfig } from "./config.ts";
 import type { FetchPageResult } from "./strategies/PageFetchStrategy.ts";
 
 // --- Delegating accessors (keep the public API unchanged) ---
 
 function storage() { return getPlatformServices().storage; }
 function fetcher() { return getPlatformServices().pageFetch; }
+
+function isFolderSyncActive(): boolean {
+  return loadConfig().storageProvider === "folder" && getDirHandle() !== null;
+}
 
 export function loadIndex(): Promise<BookmarkIndex> {
   return storage().loadIndex();
@@ -17,8 +23,11 @@ export function saveBookmark(bookmark: Bookmark): Promise<void> {
   return storage().saveBookmark(bookmark);
 }
 
-export function deleteBookmark(id: string): Promise<void> {
-  return storage().deleteBookmark(id);
+export async function deleteBookmark(id: string): Promise<void> {
+  await storage().deleteBookmark(id);
+  if (isFolderSyncActive()) {
+    deleteSnapshotFromFolder(id).catch(console.warn);
+  }
 }
 
 export function getBookmark(id: string): Promise<Bookmark | undefined> {
@@ -36,12 +45,19 @@ export function getAllSnapshots(): Promise<PageSnapshot[]> {
 // --- Snapshot helpers ---
 
 async function saveSnapshotForBookmark(bookmarkId: string, page: FetchPageResult): Promise<void> {
-  await storage().saveSnapshot({
+  const snapshot: PageSnapshot = {
     id: bookmarkId,
     content: page.content,
     textContent: page.textContent,
     fetchedAt: new Date().toISOString(),
-  });
+  };
+
+  await storage().saveSnapshot(snapshot);
+
+  // Sync individual snapshot to folder if active
+  if (isFolderSyncActive()) {
+    writeSnapshotToFolder(snapshot).catch(console.warn);
+  }
 
   const bookmark = await storage().getBookmark(bookmarkId);
   if (bookmark) {
