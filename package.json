@@ -12,9 +12,18 @@
     "build": "vite build && npm run build:api",
     "build:api": "cd api && npm install && npm run build",
     "preview": "npm run server",
-    "start": "npm run build && npm run server"
+    "start": "npm run build && npm run server",
+    "cap:sync": "npx cap sync",
+    "cap:android": "npm run build && npx cap sync android",
+    "cap:ios": "npm run build && npx cap sync ios",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/ios": "^8.2.0",
     "@hono/node-server": "^1.19.11",
     "dompurify": "^3.3.3",
     "hono": "^4.7.0",

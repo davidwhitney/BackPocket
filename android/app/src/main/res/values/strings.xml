@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pockt</string>
+    <string name="title_activity_main">Pockt</string>
+    <string name="package_name">it.pockt.app</string>
+    <string name="custom_url_scheme">it.pockt.app</string>
+</resources>
