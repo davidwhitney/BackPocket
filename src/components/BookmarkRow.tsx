@@ -1,43 +1,30 @@
 import { Link } from "react-router-dom";
 import { Bookmark, BookmarkActions } from "../types/index.ts";
 import { timeAgo, getDomain } from "../utils/format.ts";
-import { useConfirm } from "../hooks/useConfirm.ts";
+import { useBookmarkDelete } from "../hooks/useBookmarkDelete.ts";
 import { CheckIcon, CircleIcon, ArchiveIcon, TrashIcon } from "./Icons.tsx";
 import { Favicon } from "./Favicon.tsx";
+import { BookmarkTags } from "./BookmarkTags.tsx";
+
+const ICON_SIZE = 14;
 
 interface Props extends BookmarkActions {
   bookmark: Bookmark;
 }
 
 export function BookmarkRow({ bookmark, onStatusChange, onDelete }: Props) {
-  const confirm = useConfirm();
-
-  const handleDelete = async () => {
-    const ok = await confirm({
-      title: "Delete bookmark",
-      message: `Delete "${bookmark.title}" permanently?`,
-      confirmLabel: "Delete",
-      destructive: true,
-    });
-    if (ok) onDelete(bookmark.id);
-  };
+  const handleDelete = useBookmarkDelete(onDelete);
 
   return (
     <div className={`bookmark-row ${bookmark.status}`}>
-      <Favicon url={bookmark.url} size={16} />
+      <Favicon url={bookmark.url} />
       <Link to={`/view/${bookmark.id}`} className="bookmark-row-content">
         <div className="bookmark-row-main">
           <span className="bookmark-row-title">{bookmark.title}</span>
           <span className="bookmark-row-domain">{getDomain(bookmark.url)}</span>
         </div>
         <div className="bookmark-row-meta">
-          {bookmark.tags.length > 0 && (
-            <span className="bookmark-row-tags">
-              {bookmark.tags.map((t) => (
-                <span key={t} className="tag tag-sm">{t}</span>
-              ))}
-            </span>
-          )}
+          <BookmarkTags tags={bookmark.tags} className="bookmark-row-tags" />
           {bookmark.snapshotAvailable && (
             <span className="snapshot-badge" title="Offline copy available">&#9679;</span>
           )}
@@ -47,18 +34,18 @@ export function BookmarkRow({ bookmark, onStatusChange, onDelete }: Props) {
       <div className="bookmark-row-actions">
         {bookmark.status === "unread" ? (
           <button className="btn-icon" title="Mark as read" onClick={() => onStatusChange(bookmark.id, "read")}>
-            <CheckIcon size={14} />
+            <CheckIcon size={ICON_SIZE} />
           </button>
         ) : (
           <button className="btn-icon" title="Mark as unread" onClick={() => onStatusChange(bookmark.id, "unread")}>
-            <CircleIcon size={14} />
+            <CircleIcon size={ICON_SIZE} />
           </button>
         )}
         <button className="btn-icon" title="Archive" onClick={() => onStatusChange(bookmark.id, "archived")}>
-          <ArchiveIcon size={14} />
+          <ArchiveIcon size={ICON_SIZE} />
         </button>
-        <button className="btn-icon btn-danger" title="Delete" onClick={handleDelete}>
-          <TrashIcon size={14} />
+        <button className="btn-icon btn-danger" title="Delete" onClick={() => handleDelete(bookmark.id, bookmark.title)}>
+          <TrashIcon size={ICON_SIZE} />
         </button>
       </div>
     </div>

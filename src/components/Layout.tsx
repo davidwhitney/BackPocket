@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { type NetworkStatus } from "../hooks/useNetworkStatus.ts";
 import { AppLogoIcon, BookmarkIcon, PlusCircleIcon, SettingsIcon } from "./Icons.tsx";
+import { StatusIndicator } from "./StatusIndicator.tsx";
 
 interface LayoutProps {
   networkStatus: NetworkStatus;
@@ -35,14 +36,7 @@ export function Layout({ networkStatus, children }: LayoutProps) {
             </Link>
           ))}
         </nav>
-        {!networkStatus.online && (
-          <span className="offline-badge sidebar-offline">Offline</span>
-        )}
-        {networkStatus.pendingCount > 0 && (
-          <div className="pending-banner sidebar-pending">
-            {networkStatus.pendingCount} pending
-          </div>
-        )}
+        <StatusIndicator networkStatus={networkStatus} compact />
       </aside>
 
       <div className="app-body">
@@ -52,17 +46,9 @@ export function Layout({ networkStatus, children }: LayoutProps) {
               <AppLogoIcon />
               <span>BackPocket</span>
             </Link>
-            {!networkStatus.online && (
-              <span className="offline-badge">Offline</span>
-            )}
+            {!networkStatus.online && <span className="offline-badge">Offline</span>}
           </div>
-          {networkStatus.pendingCount > 0 && (
-            <div className="pending-banner">
-              {networkStatus.online
-                ? `Syncing ${networkStatus.pendingCount} snapshot${networkStatus.pendingCount !== 1 ? "s" : ""}...`
-                : `${networkStatus.pendingCount} snapshot${networkStatus.pendingCount !== 1 ? "s" : ""} pending`}
-            </div>
-          )}
+          <StatusIndicator networkStatus={networkStatus} />
         </header>
 
         <main className="app-main">{children}</main>

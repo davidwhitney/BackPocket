@@ -1,3 +1,5 @@
+import type { BookmarkIndex, PageSnapshot } from "../types/index.ts";
+
 let _dirHandle: FileSystemDirectoryHandle | null = null;
 
 export function isFileSystemAccessSupported(): boolean {
@@ -73,8 +75,6 @@ async function listFiles(dir: FileSystemDirectoryHandle, prefix: string): Promis
 }
 
 // --- High-level sync operations ---
-
-import type { BookmarkIndex, PageSnapshot } from "../types/index.ts";
 
 export async function writeIndexToFolder(index: BookmarkIndex): Promise<boolean> {
   const dir = _dirHandle;

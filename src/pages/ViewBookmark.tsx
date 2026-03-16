@@ -5,7 +5,7 @@ import { Bookmark, BookmarkStatus, PageSnapshot } from "../types/index.ts";
 import { getBookmark, getSnapshot } from "../services/storage.ts";
 import { shareUrl } from "../utils/share.ts";
 import { ArrowLeftIcon, ShareIcon } from "../components/Icons.tsx";
-import { useConfirm } from "../hooks/useConfirm.ts";
+import { useBookmarkDelete } from "../hooks/useBookmarkDelete.ts";
 
 interface Props {
   bookmarks: {
@@ -18,7 +18,6 @@ interface Props {
 export function ViewBookmark({ bookmarks }: Props) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const confirm = useConfirm();
   const [bookmark, setBookmark] = useState<Bookmark | null>(null);
   const [snapshot, setSnapshot] = useState<PageSnapshot | null>(null);
   const [readerMode, setReaderMode] = useState(false);
@@ -63,18 +62,10 @@ export function ViewBookmark({ bookmarks }: Props) {
     setBookmark((prev) => prev ? { ...prev, tags: newTags } : prev);
   };
 
-  const handleDelete = async () => {
-    const ok = await confirm({
-      title: "Delete bookmark",
-      message: `Delete "${bookmark.title}" permanently?`,
-      confirmLabel: "Delete",
-      destructive: true,
-    });
-    if (ok) {
-      await bookmarks.removeBookmark(bookmark.id);
-      navigate("/");
-    }
-  };
+  const confirmDelete = useBookmarkDelete(async (id) => {
+    await bookmarks.removeBookmark(id);
+    navigate("/");
+  });
 
   const updateLocalStatus = (status: BookmarkStatus) => {
     bookmarks.setStatus(bookmark.id, status);
@@ -191,7 +182,7 @@ export function ViewBookmark({ bookmarks }: Props) {
         }}>
           Archive
         </button>
-        <button className="btn btn-sm btn-danger" onClick={handleDelete}>
+        <button className="btn btn-sm btn-danger" onClick={() => confirmDelete(bookmark.id, bookmark.title)}>
           Delete
         </button>
       </div>

@@ -2,11 +2,8 @@ import { useRef, useCallback, useEffect } from "react";
 import { AppConfig } from "../types/index.ts";
 import { loadIndex, exportAllData } from "../services/storage.ts";
 import { syncToOneDrive } from "../services/onedrive.ts";
-import {
-  writeIndexToFolder,
-  restoreHandle,
-  getDirHandle,
-} from "../services/folder-sync.ts";
+import { writeIndexToFolder, restoreHandle, getDirHandle } from "../services/folder-sync.ts";
+import { useDebounce } from "./useDebounce.ts";
 import { SYNC_DEBOUNCE_MS } from "../constants.ts";
 
 interface UseSyncOptions {
@@ -15,7 +12,6 @@ interface UseSyncOptions {
 }
 
 export function useSync({ config, setConfig }: UseSyncOptions) {
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncingRef = useRef(false);
 
   useEffect(() => {
@@ -35,20 +31,15 @@ export function useSync({ config, setConfig }: UseSyncOptions) {
         case "folder": {
           if (!getDirHandle()) await restoreHandle();
           if (!getDirHandle()) break;
-          // Only write the index — snapshots are synced individually in storage.ts
           const index = await loadIndex();
           const ok = await writeIndexToFolder(index);
-          if (ok) {
-            setConfig({ lastSync: new Date().toISOString() });
-          }
+          if (ok) setConfig({ lastSync: new Date().toISOString() });
           break;
         }
         case "onedrive": {
           if (!config.onedrive?.accessToken) break;
           const result = await syncToOneDrive(config, setConfig, exportAllData);
-          if (!result.success) {
-            console.warn("OneDrive sync failed:", result.error);
-          }
+          if (!result.success) console.warn("OneDrive sync failed:", result.error);
           break;
         }
       }
@@ -59,17 +50,12 @@ export function useSync({ config, setConfig }: UseSyncOptions) {
     }
   }, [config, setConfig]);
 
+  const debouncedSync = useDebounce(syncNow, SYNC_DEBOUNCE_MS);
+
   const scheduleSync = useCallback(() => {
     if (config.storageProvider === "local") return;
-
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    debounceRef.current = setTimeout(() => {
-      syncNow();
-    }, SYNC_DEBOUNCE_MS);
-  }, [config.storageProvider, syncNow]);
+    debouncedSync();
+  }, [config.storageProvider, debouncedSync]);
 
   useEffect(() => {
     if (config.storageProvider === "local") return;
@@ -77,12 +63,6 @@ export function useSync({ config, setConfig }: UseSyncOptions) {
     window.addEventListener("online", handler);
     return () => window.removeEventListener("online", handler);
   }, [config.storageProvider, scheduleSync]);
-
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
 
   return { scheduleSync, syncNow };
 }

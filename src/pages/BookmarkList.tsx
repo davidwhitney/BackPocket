@@ -1,9 +1,9 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Bookmark, ViewMode } from "../types/index.ts";
+import { ViewMode } from "../types/index.ts";
 import { type BookmarkService } from "../hooks/useBookmarks.ts";
+import { useBookmarkSearch } from "../hooks/useBookmarkSearch.ts";
 import { BookmarkListView } from "../components/BookmarkListView.tsx";
-import { SEARCH_DEBOUNCE_MS } from "../constants.ts";
 
 interface Props {
   bookmarks: BookmarkService;
@@ -15,49 +15,7 @@ type Filter = "all" | "unread" | "read";
 export function BookmarkList({ bookmarks: bm, viewMode }: Props) {
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [query, setQuery] = useState("");
-  const [deepSearch, setDeepSearch] = useState(true);
-  const [searchResults, setSearchResults] = useState<Bookmark[] | null>(null);
-  const [searching, setSearching] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const runSearch = useCallback(async (q: string, deep: boolean) => {
-    if (!q.trim()) {
-      setSearchResults(null);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    const results = await bm.search(q.trim(), deep);
-    setSearchResults(results);
-    setSearching(false);
-  }, [bm]);
-
-  const handleQueryChange = useCallback((value: string) => {
-    setQuery(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    if (!value.trim()) {
-      setSearchResults(null);
-      setSearching(false);
-      return;
-    }
-
-    setSearching(true);
-    debounceRef.current = setTimeout(() => runSearch(value, deepSearch), SEARCH_DEBOUNCE_MS);
-  }, [deepSearch, runSearch]);
-
-  // Re-run search when deep search is toggled
-  useEffect(() => {
-    if (query.trim()) {
-      runSearch(query, deepSearch);
-    }
-  }, [deepSearch]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Cleanup
-  useEffect(() => {
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, []);
+  const search = useBookmarkSearch(bm.search);
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -90,38 +48,30 @@ export function BookmarkList({ bookmarks: bm, viewMode }: Props) {
     return <div className="loading">Loading bookmarks...</div>;
   }
 
-  const isSearching = searchResults !== null;
-  const displayItems = isSearching ? searchResults : filtered;
+  const displayItems = search.isActive ? search.results! : filtered;
 
   return (
     <div className="bookmark-list-page">
-      <div className="list-header">
-        <h1>Bookmarks</h1>
-        <Link to="/add" className="btn btn-primary btn-sm">
-          + Add
-        </Link>
-      </div>
-
       <div className="search-bar">
         <input
           type="search"
           placeholder="Search bookmarks..."
-          value={query}
-          onChange={(e) => handleQueryChange(e.target.value)}
+          value={search.query}
+          onChange={(e) => search.setQuery(e.target.value)}
         />
-        {isSearching && (
+        {search.isActive && (
           <label className="checkbox-label checkbox-inline">
             <input
               type="checkbox"
-              checked={deepSearch}
-              onChange={(e) => setDeepSearch(e.target.checked)}
+              checked={search.deepSearch}
+              onChange={(e) => search.setDeepSearch(e.target.checked)}
             />
             <span>Deep search</span>
           </label>
         )}
       </div>
 
-      {!isSearching && (
+      {!search.isActive && (
         <>
           <div className="filter-bar">
             <div className="filter-tabs">
@@ -158,16 +108,16 @@ export function BookmarkList({ bookmarks: bm, viewMode }: Props) {
         </>
       )}
 
-      {isSearching && (
+      {search.isActive && (
         <p className="results-count">
-          {searching ? "Searching..." : `${displayItems.length} result${displayItems.length !== 1 ? "s" : ""}`}
+          {search.searching ? "Searching..." : `${displayItems.length} result${displayItems.length !== 1 ? "s" : ""}`}
         </p>
       )}
 
       {displayItems.length === 0 ? (
         <div className="empty-state">
-          {isSearching ? (
-            <p>{searching ? "" : "No results found."}</p>
+          {search.isActive ? (
+            <p>{search.searching ? "" : "No results found."}</p>
           ) : (
             <>
               <p>No bookmarks yet.</p>

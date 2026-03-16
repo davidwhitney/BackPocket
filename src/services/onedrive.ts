@@ -57,8 +57,8 @@ async function getAccessToken(
   const tokens = getTokens(config);
   if (!tokens) return null;
 
-  // If token looks expired (or we don't track expiry), try refresh
-  if (tokens.expiresAt && Date.now() > tokens.expiresAt - 60_000) {
+  // If token is expired (with 60s buffer), refresh it
+  if (tokens.expiresAt > 0 && Date.now() > tokens.expiresAt - 60_000) {
     return refreshAccessToken(config, saveConfig);
   }
 

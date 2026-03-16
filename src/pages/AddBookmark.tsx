@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Bookmark } from "../types/index.ts";
-import { fetchPageMetadata } from "../services/storage.ts";
-import { METADATA_DEBOUNCE_MS } from "../constants.ts";
+import { useMetadataFetch } from "../hooks/useMetadataFetch.ts";
 
 interface Props {
   bookmarks: {
@@ -15,61 +14,15 @@ export function AddBookmark({ bookmarks }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
-  const [fetching, setFetching] = useState(false);
   const userEditedTitle = useRef(false);
   const userEditedDesc = useRef(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const abortController = useRef<AbortController | null>(null);
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastFetchedUrl = useRef("");
 
-  function fetchMeta(fetchUrl: string) {
-    // Skip if we already fetched this exact URL
-    if (fetchUrl === lastFetchedUrl.current) return;
-    lastFetchedUrl.current = fetchUrl;
-
-    // Abort any in-flight request
-    abortController.current?.abort();
-    const controller = new AbortController();
-    abortController.current = controller;
-
-    setFetching(true);
-    fetchPageMetadata(fetchUrl, controller.signal)
-      .then((meta) => {
-        if (controller.signal.aborted) return;
-        if (meta) {
-          if (!userEditedTitle.current && meta.title) {
-            setTitle(meta.title);
-          }
-          if (!userEditedDesc.current && meta.description) {
-            setDescription(meta.description);
-          }
-        }
-      })
-      .catch(() => {
-        // Aborted or failed — ignore
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setFetching(false);
-        }
-      });
-  }
-
-  function scheduleFetch(newUrl: string) {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-
-    try {
-      new URL(newUrl);
-    } catch {
-      return; // Not a valid URL yet
-    }
-
-    debounceTimer.current = setTimeout(() => fetchMeta(newUrl), METADATA_DEBOUNCE_MS);
-  }
+  const { fetching, fetchMeta, scheduleFetch, cancel } = useMetadataFetch((meta) => {
+    if (!userEditedTitle.current && meta.title) setTitle(meta.title);
+    if (!userEditedDesc.current && meta.description) setDescription(meta.description);
+  });
 
   // Support /add?url=... from share target
   useEffect(() => {
@@ -95,10 +48,7 @@ export function AddBookmark({ bookmarks }: Props) {
       }
     }
 
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-      abortController.current?.abort();
-    };
+    return cancel;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave(
@@ -109,9 +59,7 @@ export function AddBookmark({ bookmarks }: Props) {
     const finalUrl = saveUrl || url;
     if (!finalUrl.trim()) return;
 
-    // Cancel any in-flight metadata fetch
-    abortController.current?.abort();
-
+    cancel();
     setSaving(true);
     try {
       const bookmark = await bookmarks.addBookmark(
@@ -151,9 +99,7 @@ export function AddBookmark({ bookmarks }: Props) {
               const pasted = e.clipboardData.getData("text");
               try {
                 new URL(pasted);
-                // Clear debounce so only the paste-triggered fetch runs
-                if (debounceTimer.current) clearTimeout(debounceTimer.current);
-                // Small delay to let onChange set the value first
+                cancel();
                 setTimeout(() => fetchMeta(pasted), 0);
               } catch {
                 // Not a URL

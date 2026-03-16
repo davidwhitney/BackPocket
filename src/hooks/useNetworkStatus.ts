@@ -22,10 +22,8 @@ export function useNetworkStatus() {
   useEffect(() => {
     const goOnline = async () => {
       setStatus((prev) => ({ ...prev, online: true }));
-      // Process the offline queue now that we're back online
       const processed = await processQueue();
       if (processed > 0) {
-        // Re-attempt snapshot fetches for items that were queued
         await fetchPendingSnapshots();
       }
       await refreshPending();
@@ -35,25 +33,28 @@ export function useNetworkStatus() {
       setStatus((prev) => ({ ...prev, online: false }));
     };
 
+    const onSwMessage = async (event: MessageEvent) => {
+      if (event.data?.type === SW_MESSAGES.SNAPSHOTS_SYNCED) {
+        await fetchPendingSnapshots();
+        await refreshPending();
+      }
+    };
+
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
 
-    // Listen for service worker messages about completed syncs
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.addEventListener("message", async (event) => {
-        if (event.data?.type === SW_MESSAGES.SNAPSHOTS_SYNCED) {
-          await fetchPendingSnapshots();
-          await refreshPending();
-        }
-      });
+      navigator.serviceWorker.addEventListener("message", onSwMessage);
     }
 
-    // Initial pending count
     refreshPending();
 
     return () => {
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", onSwMessage);
+      }
     };
   }, [refreshPending]);
 

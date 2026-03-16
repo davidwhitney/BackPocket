@@ -51,7 +51,7 @@ async function handleFetchPage(reqUrl: URL): Promise<Response> {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), 10_000); // FETCH_PAGE_TIMEOUT_MS
 
     const response = await fetch(targetUrl, {
       signal: controller.signal,
