@@ -1,8 +1,8 @@
 import { useRef, useCallback, useEffect } from "react";
 import { AppConfig } from "../types/index.ts";
-import { loadIndex, exportAllData } from "../services/storage.ts";
-import { syncToOneDrive } from "../services/onedrive.ts";
-import { writeIndexToFolder, restoreHandle, getDirHandle } from "../services/folder-sync.ts";
+import { loadIndex } from "../services/storage.ts";
+import { getExternalProvider } from "../services/sync/registry.ts";
+import { setOneDriveConfigSetter } from "../services/sync/OneDriveStorageProvider.ts";
 import { useDebounce } from "./useDebounce.ts";
 import { SYNC_DEBOUNCE_MS } from "../constants.ts";
 
@@ -13,56 +13,77 @@ interface UseSyncOptions {
 
 export function useSync({ config, setConfig }: UseSyncOptions) {
   const syncingRef = useRef(false);
+  const configRef = useRef(config);
+  configRef.current = config;
+  const setConfigRef = useRef(setConfig);
+  setConfigRef.current = setConfig;
 
+  // Keep OneDrive provider's config setter in sync
   useEffect(() => {
-    if (config.storageProvider === "folder") {
-      restoreHandle().catch(() => {});
-    }
-  }, [config.storageProvider]);
+    setOneDriveConfigSetter(setConfig);
+  }, [setConfig]);
+
+  // Initialise the active provider on mount / provider change
+  useEffect(() => {
+    const provider = getExternalProvider(config.storageProvider);
+    provider?.init(config);
+  }, [config.storageProvider]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const syncNow = useCallback(async () => {
     if (syncingRef.current) return;
-    if (!navigator.onLine && config.storageProvider !== "folder") return;
+
+    const cfg = configRef.current;
+    const provider = getExternalProvider(cfg.storageProvider);
+    if (!provider) return;
+    if (provider.requiresOnline && !navigator.onLine) return;
+
+    // Ensure provider is initialised
+    if (!provider.isReady(cfg)) {
+      await provider.init(cfg);
+      if (!provider.isReady(cfg)) return;
+    }
 
     syncingRef.current = true;
 
     try {
-      switch (config.storageProvider) {
-        case "folder": {
-          if (!getDirHandle()) await restoreHandle();
-          if (!getDirHandle()) break;
-          const index = await loadIndex();
-          const ok = await writeIndexToFolder(index);
-          if (ok) setConfig({ lastSync: new Date().toISOString() });
-          break;
-        }
-        case "onedrive": {
-          if (!config.onedrive?.accessToken) break;
-          const result = await syncToOneDrive(config, setConfig, exportAllData);
-          if (!result.success) console.warn("OneDrive sync failed:", result.error);
-          break;
-        }
+      const index = await loadIndex();
+      const result = await provider.pushIndex(index, cfg);
+      if (result.success) {
+        setConfigRef.current({ lastSync: new Date().toISOString() });
+      } else {
+        console.warn("Sync failed:", result.error);
       }
     } catch (err) {
       console.warn("Sync failed:", err);
     } finally {
       syncingRef.current = false;
     }
-  }, [config, setConfig]);
+  }, []);
 
   const debouncedSync = useDebounce(syncNow, SYNC_DEBOUNCE_MS);
 
   const scheduleSync = useCallback(() => {
-    if (config.storageProvider === "local") return;
+    const provider = getExternalProvider(configRef.current.storageProvider);
+    if (!provider) return;
     debouncedSync();
-  }, [config.storageProvider, debouncedSync]);
+  }, [debouncedSync]);
 
+  // Sync when coming back online
   useEffect(() => {
-    if (config.storageProvider === "local") return;
+    const provider = getExternalProvider(config.storageProvider);
+    if (!provider) return;
     const handler = () => scheduleSync();
     window.addEventListener("online", handler);
     return () => window.removeEventListener("online", handler);
   }, [config.storageProvider, scheduleSync]);
+
+  // Initial sync on app launch
+  useEffect(() => {
+    const provider = getExternalProvider(config.storageProvider);
+    if (!provider) return;
+    const timer = setTimeout(() => scheduleSync(), 500);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { scheduleSync, syncNow };
 }

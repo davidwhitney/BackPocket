@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AppConfig } from "../../types/index.ts";
 import { importAllData } from "../../services/storage.ts";
-import { getOneDriveAuthUrl, syncFromOneDrive } from "../../services/onedrive.ts";
+import { getOneDriveAuthUrl } from "../../services/onedrive.ts";
+import { getExternalProvider } from "../../services/sync/registry.ts";
 
 interface Props {
   config: AppConfig;
@@ -63,17 +64,20 @@ export function OneDriveConfig({ config, setConfig, onDataChange, syncNow }: Pro
   const handlePull = async () => {
     setSyncing(true);
     setStatus("Downloading from OneDrive...");
-    const result = await syncFromOneDrive(config, setConfig);
-    if (result.success && result.data) {
-      try {
-        const imported = await importAllData(result.data);
-        setStatus(`Restored ${imported.bookmarks} bookmarks`);
-        onDataChange?.();
-      } catch (err) {
-        setStatus(`Error: ${err instanceof Error ? err.message : "Import failed"}`);
+    try {
+      const provider = getExternalProvider("onedrive");
+      if (!provider) { setStatus("Error: provider not available"); setSyncing(false); return; }
+      const result = await provider.pull(config);
+      if (!result.success || !result.data) {
+        setStatus(`Error: ${result.error || "No data"}`);
+        setSyncing(false);
+        return;
       }
-    } else {
-      setStatus(`Error: ${result.error}`);
+      const imported = await importAllData(result.data);
+      setStatus(`Restored ${imported.bookmarks} bookmarks`);
+      onDataChange?.();
+    } catch (err) {
+      setStatus(`Error: ${err instanceof Error ? err.message : "Import failed"}`);
     }
     setSyncing(false);
   };

@@ -1,15 +1,8 @@
 import { useState, useEffect } from "react";
 import { AppConfig } from "../../types/index.ts";
 import { importAllData } from "../../services/storage.ts";
-import {
-  pickFolder,
-  persistHandle,
-  restoreHandle,
-  clearHandle,
-  readIndexFromFolder,
-  readAllSnapshotsFromFolder,
-  getDirHandle,
-} from "../../services/folder-sync.ts";
+import { pickFolder, persistHandle, restoreHandle, clearHandle, getDirHandle } from "../../services/folder-sync.ts";
+import { getExternalProvider } from "../../services/sync/registry.ts";
 
 interface Props {
   config: AppConfig;
@@ -60,13 +53,16 @@ export function FolderSyncConfig({ config, setConfig, onDataChange, syncNow }: P
     setSyncing(true);
     setStatus("Loading from folder...");
     try {
-      if (!getDirHandle()) await restoreHandle();
-      const index = await readIndexFromFolder();
-      if (!index) { setStatus("No backup found in folder"); setSyncing(false); return; }
-      setStatus("Loading snapshots...");
-      const snapshots = await readAllSnapshotsFromFolder();
-      const result = await importAllData(JSON.stringify({ index, snapshots }));
-      setStatus(`Restored ${result.bookmarks} bookmarks and ${result.snapshots} snapshots`);
+      const provider = getExternalProvider("folder");
+      if (!provider) { setStatus("Error: provider not available"); setSyncing(false); return; }
+      const result = await provider.pull(config);
+      if (!result.success || !result.data) {
+        setStatus(`Error: ${result.error || "No data"}`);
+        setSyncing(false);
+        return;
+      }
+      const imported = await importAllData(result.data);
+      setStatus(`Restored ${imported.bookmarks} bookmarks and ${imported.snapshots} snapshots`);
       onDataChange?.();
     } catch (err) {
       setStatus(`Error: ${err instanceof Error ? err.message : "Read failed"}`);

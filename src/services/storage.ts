@@ -2,7 +2,7 @@ import { Bookmark, BookmarkIndex, PageSnapshot } from "../types/index.ts";
 import { generateId } from "../utils/id.ts";
 import { getPlatformServices } from "./platform.ts";
 import { enqueueSnapshotFetch, getAllPending, dequeueItem } from "./offline-queue.ts";
-import { writeSnapshotToFolder, deleteSnapshotFromFolder, getDirHandle } from "./folder-sync.ts";
+import { getExternalProvider } from "./sync/registry.ts";
 import { loadConfig } from "./config.ts";
 import type { FetchPageResult } from "./strategies/PageFetchStrategy.ts";
 
@@ -11,8 +11,9 @@ import type { FetchPageResult } from "./strategies/PageFetchStrategy.ts";
 function storage() { return getPlatformServices().storage; }
 function fetcher() { return getPlatformServices().pageFetch; }
 
-function isFolderSyncActive(): boolean {
-  return loadConfig().storageProvider === "folder" && getDirHandle() !== null;
+function getActiveProvider() {
+  const cfg = loadConfig();
+  return getExternalProvider(cfg.storageProvider);
 }
 
 export function loadIndex(): Promise<BookmarkIndex> {
@@ -25,8 +26,9 @@ export function saveBookmark(bookmark: Bookmark): Promise<void> {
 
 export async function deleteBookmark(id: string): Promise<void> {
   await storage().deleteBookmark(id);
-  if (isFolderSyncActive()) {
-    deleteSnapshotFromFolder(id).catch(console.warn);
+  const provider = getActiveProvider();
+  if (provider) {
+    provider.deleteSnapshot(id, loadConfig()).catch(console.warn);
   }
 }
 
@@ -54,9 +56,10 @@ async function saveSnapshotForBookmark(bookmarkId: string, page: FetchPageResult
 
   await storage().saveSnapshot(snapshot);
 
-  // Sync individual snapshot to folder if active
-  if (isFolderSyncActive()) {
-    writeSnapshotToFolder(snapshot).catch(console.warn);
+  // Sync individual snapshot to external provider if active
+  const provider = getActiveProvider();
+  if (provider) {
+    provider.pushSnapshot(snapshot, loadConfig()).catch(console.warn);
   }
 
   const bookmark = await storage().getBookmark(bookmarkId);
