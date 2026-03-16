@@ -3,10 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
 import { Bookmark, BookmarkStatus, PageSnapshot } from "../types/index.ts";
 import { getBookmark, getSnapshot } from "../services/storage.ts";
+import { shareUrl } from "../utils/share.ts";
+import { ArrowLeftIcon, ShareIcon } from "../components/Icons.tsx";
 
 interface Props {
   bookmarks: {
-    updateBookmark: (id: string, updates: Partial<Bookmark>) => Promise<void>;
     setStatus: (id: string, status: BookmarkStatus) => Promise<void>;
     setTags: (id: string, tags: string[]) => Promise<void>;
     removeBookmark: (id: string) => Promise<void>;
@@ -60,18 +61,6 @@ export function ViewBookmark({ bookmarks }: Props) {
     setBookmark((prev) => prev ? { ...prev, tags: newTags } : prev);
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: bookmark.title, url: bookmark.url });
-      } catch {
-        // cancelled
-      }
-    } else {
-      await navigator.clipboard.writeText(bookmark.url);
-    }
-  };
-
   const handleDelete = async () => {
     if (confirm("Delete this bookmark permanently?")) {
       await bookmarks.removeBookmark(bookmark.id);
@@ -79,24 +68,20 @@ export function ViewBookmark({ bookmarks }: Props) {
     }
   };
 
+  const updateLocalStatus = (status: BookmarkStatus) => {
+    bookmarks.setStatus(bookmark.id, status);
+    setBookmark((prev) => prev ? { ...prev, status } : prev);
+  };
+
   return (
     <div className="view-page">
       <div className="view-header">
         <button className="btn-icon" onClick={() => navigate("/")}>
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
+          <ArrowLeftIcon />
         </button>
         <div className="view-header-actions">
-          <button className="btn-icon" title="Share" onClick={handleShare}>
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="18" cy="5" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="19" r="3" />
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-            </svg>
+          <button className="btn-icon" title="Share" onClick={() => shareUrl(bookmark.title, bookmark.url)}>
+            <ShareIcon size={18} />
           </button>
         </div>
       </div>
@@ -152,19 +137,13 @@ export function ViewBookmark({ bookmarks }: Props) {
       </div>
 
       <div className="view-status-actions">
-        {bookmark.status === "unread" && (
-          <button className="btn btn-sm" onClick={() => {
-            bookmarks.setStatus(bookmark.id, "read");
-            setBookmark((prev) => prev ? { ...prev, status: "read" } : prev);
-          }}>
+        {bookmark.status !== "read" && (
+          <button className="btn btn-sm" onClick={() => updateLocalStatus("read")}>
             Mark Read
           </button>
         )}
-        {bookmark.status === "read" && (
-          <button className="btn btn-sm" onClick={() => {
-            bookmarks.setStatus(bookmark.id, "unread");
-            setBookmark((prev) => prev ? { ...prev, status: "unread" } : prev);
-          }}>
+        {bookmark.status !== "unread" && (
+          <button className="btn btn-sm" onClick={() => updateLocalStatus("unread")}>
             Mark Unread
           </button>
         )}

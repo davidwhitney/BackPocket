@@ -1,14 +1,10 @@
 import { useState } from "react";
-import { Bookmark, BookmarkStatus, ViewMode } from "../types/index.ts";
-import { BookmarkCard } from "../components/BookmarkCard.tsx";
-import { BookmarkRow } from "../components/BookmarkRow.tsx";
+import { Bookmark, ViewMode } from "../types/index.ts";
+import { type BookmarkService } from "../hooks/useBookmarks.ts";
+import { BookmarkListView } from "../components/BookmarkListView.tsx";
 
 interface Props {
-  bookmarks: {
-    search: (query: string, deep: boolean) => Promise<Bookmark[]>;
-    setStatus: (id: string, status: BookmarkStatus) => Promise<void>;
-    removeBookmark: (id: string) => Promise<void>;
-  };
+  bookmarks: BookmarkService;
   viewMode: ViewMode;
 }
 
@@ -26,8 +22,6 @@ export function SearchPage({ bookmarks, viewMode }: Props) {
     setResults(found);
     setSearching(false);
   };
-
-  const Item = viewMode === "list" ? BookmarkRow : BookmarkCard;
 
   return (
     <div className="search-page">
@@ -60,16 +54,12 @@ export function SearchPage({ bookmarks, viewMode }: Props) {
           ) : (
             <>
               <p className="results-count">{results.length} result{results.length !== 1 ? "s" : ""}</p>
-              <div className={viewMode === "list" ? "bookmark-list-rows" : "bookmark-list"}>
-                {results.map((bookmark) => (
-                  <Item
-                    key={bookmark.id}
-                    bookmark={bookmark}
-                    onStatusChange={bookmarks.setStatus}
-                    onDelete={bookmarks.removeBookmark}
-                  />
-                ))}
-              </div>
+              <BookmarkListView
+                bookmarks={results}
+                viewMode={viewMode}
+                onStatusChange={bookmarks.setStatus}
+                onDelete={bookmarks.removeBookmark}
+              />
             </>
           )}
         </div>

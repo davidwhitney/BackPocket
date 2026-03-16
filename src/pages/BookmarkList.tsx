@@ -1,17 +1,11 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Bookmark, BookmarkStatus, ViewMode } from "../types/index.ts";
-import { BookmarkCard } from "../components/BookmarkCard.tsx";
-import { BookmarkRow } from "../components/BookmarkRow.tsx";
+import { ViewMode } from "../types/index.ts";
+import { type BookmarkService } from "../hooks/useBookmarks.ts";
+import { BookmarkListView } from "../components/BookmarkListView.tsx";
 
 interface Props {
-  bookmarks: {
-    bookmarks: Bookmark[];
-    loading: boolean;
-    setStatus: (id: string, status: BookmarkStatus) => Promise<void>;
-    removeBookmark: (id: string) => Promise<void>;
-    filterByTags: (tags: string[]) => Bookmark[];
-  };
+  bookmarks: BookmarkService;
   viewMode: ViewMode;
 }
 
@@ -51,8 +45,6 @@ export function BookmarkList({ bookmarks: bm, viewMode }: Props) {
   if (bm.loading) {
     return <div className="loading">Loading bookmarks...</div>;
   }
-
-  const Item = viewMode === "list" ? BookmarkRow : BookmarkCard;
 
   return (
     <div className="bookmark-list-page">
@@ -104,16 +96,12 @@ export function BookmarkList({ bookmarks: bm, viewMode }: Props) {
           </Link>
         </div>
       ) : (
-        <div className={viewMode === "list" ? "bookmark-list-rows" : "bookmark-list"}>
-          {filtered.map((bookmark) => (
-            <Item
-              key={bookmark.id}
-              bookmark={bookmark}
-              onStatusChange={bm.setStatus}
-              onDelete={bm.removeBookmark}
-            />
-          ))}
-        </div>
+        <BookmarkListView
+          bookmarks={filtered}
+          viewMode={viewMode}
+          onStatusChange={bm.setStatus}
+          onDelete={bm.removeBookmark}
+        />
       )}
     </div>
   );

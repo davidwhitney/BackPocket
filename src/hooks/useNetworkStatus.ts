@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getPendingCount, processQueue } from "../services/offline-queue.ts";
 import { fetchPendingSnapshots } from "../services/storage.ts";
+import { SW_MESSAGES } from "../constants.ts";
 
 export interface NetworkStatus {
   online: boolean;
@@ -40,7 +41,7 @@ export function useNetworkStatus() {
     // Listen for service worker messages about completed syncs
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("message", async (event) => {
-        if (event.data?.type === "SNAPSHOTS_SYNCED") {
+        if (event.data?.type === SW_MESSAGES.SNAPSHOTS_SYNCED) {
           await fetchPendingSnapshots();
           await refreshPending();
         }

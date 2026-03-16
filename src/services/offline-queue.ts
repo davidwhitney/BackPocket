@@ -1,7 +1,5 @@
 import { openDB } from "idb";
-
-const QUEUE_DB = "backpocket_queue";
-const QUEUE_VERSION = 1;
+import { QUEUE_DB_NAME, QUEUE_DB_VERSION, SYNC_TAG_SNAPSHOT_QUEUE } from "../constants.ts";
 
 interface PendingItem {
   id: string;
@@ -11,7 +9,7 @@ interface PendingItem {
 }
 
 function getQueueDb() {
-  return openDB(QUEUE_DB, QUEUE_VERSION, {
+  return openDB(QUEUE_DB_NAME, QUEUE_DB_VERSION, {
     upgrade(db) {
       if (!db.objectStoreNames.contains("pending")) {
         db.createObjectStore("pending", { keyPath: "id" });
@@ -30,13 +28,12 @@ export async function enqueueSnapshotFetch(bookmarkId: string, url: string): Pro
   };
   await db.put("pending", item);
 
-  // Request background sync if available
   if ("serviceWorker" in navigator && "SyncManager" in window) {
     const reg = await navigator.serviceWorker.ready;
     try {
-      await (reg as any).sync.register("snapshot-queue");
+      await (reg as any).sync.register(SYNC_TAG_SNAPSHOT_QUEUE);
     } catch {
-      // Background sync not supported or denied, we'll process on reconnect
+      // Background sync not supported or denied
     }
   }
 }
@@ -62,7 +59,6 @@ export async function processQueue(): Promise<number> {
 
   for (const item of items) {
     try {
-      // Attempt the fetch - if we're online this will succeed
       const response = await fetch(item.url, { mode: "no-cors" });
       if (response) {
         processed++;

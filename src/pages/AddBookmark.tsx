@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Bookmark } from "../types/index.ts";
 import { fetchPageMetadata } from "../services/storage.ts";
+import { METADATA_DEBOUNCE_MS } from "../constants.ts";
 
 interface Props {
   bookmarks: {
@@ -67,7 +68,7 @@ export function AddBookmark({ bookmarks }: Props) {
       return; // Not a valid URL yet
     }
 
-    debounceTimer.current = setTimeout(() => fetchMeta(newUrl), 600);
+    debounceTimer.current = setTimeout(() => fetchMeta(newUrl), METADATA_DEBOUNCE_MS);
   }
 
   // Support /add?url=... from share target

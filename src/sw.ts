@@ -6,26 +6,33 @@ import { ExpirationPlugin } from "workbox-expiration";
 import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { clientsClaim } from "workbox-core";
 
+// Note: constants are inlined here because the SW bundle is separate from the
+// main app bundle and can't share the idb library or main-thread modules.
+// These values must stay in sync with src/constants.ts.
+const QUEUE_DB_NAME = "backpocket_queue";
+const CACHE_SNAPSHOTS = "snapshot-fetches";
+const SYNC_TAG = "snapshot-queue";
+const MSG_SNAPSHOTS_SYNCED = "SNAPSHOTS_SYNCED";
+
 declare let self: ServiceWorkerGlobalScope;
 
-// Take control immediately on install — don't wait for existing tabs to close
 self.skipWaiting();
 clientsClaim();
 
-// Precache the app shell (injected by vite-plugin-pwa at build time)
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
-// Serve the app shell for all navigation requests (SPA fallback)
-const navigationHandler = new NetworkFirst({
-  cacheName: "pages-cache",
-  plugins: [
-    new CacheableResponsePlugin({ statuses: [200] }),
-  ],
-});
-registerRoute(new NavigationRoute(navigationHandler));
+// SPA navigation fallback
+registerRoute(
+  new NavigationRoute(
+    new NetworkFirst({
+      cacheName: "pages-cache",
+      plugins: [new CacheableResponsePlugin({ statuses: [200] })],
+    }),
+  ),
+);
 
-// Cache static assets (JS, CSS, fonts) with cache-first
+// Static assets — cache-first
 registerRoute(
   ({ request }) =>
     request.destination === "script" ||
@@ -40,7 +47,7 @@ registerRoute(
   }),
 );
 
-// Cache images with stale-while-revalidate
+// Images — stale-while-revalidate
 registerRoute(
   ({ request }) => request.destination === "image",
   new StaleWhileRevalidate({
@@ -52,11 +59,11 @@ registerRoute(
   }),
 );
 
-// Cache /api/fetch-page proxy responses so snapshots work offline
+// Proxy page fetches — cache for offline snapshot access
 registerRoute(
   ({ url }) => url.origin === self.location.origin && url.pathname === "/api/fetch-page",
   new NetworkFirst({
-    cacheName: "snapshot-fetches",
+    cacheName: CACHE_SNAPSHOTS,
     plugins: [
       new CacheableResponsePlugin({ statuses: [200] }),
       new ExpirationPlugin({ maxEntries: 500, maxAgeSeconds: 90 * 24 * 60 * 60 }),
@@ -65,16 +72,16 @@ registerRoute(
   }),
 );
 
-// Listen for messages from the main thread
+// Messages from main thread
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
 });
 
-// Background sync: process queued snapshot fetches when connectivity returns
+// Background sync — process queued snapshot fetches on reconnect
 self.addEventListener("sync", (event: any) => {
-  if (event.tag === "snapshot-queue") {
+  if (event.tag === SYNC_TAG) {
     event.waitUntil(processSnapshotQueue());
   }
 });
@@ -90,32 +97,29 @@ async function processSnapshotQueue(): Promise<void> {
       const proxyUrl = `${self.location.origin}/api/fetch-page?url=${encodeURIComponent(item.url)}`;
       const response = await fetch(proxyUrl);
       if (response.ok) {
-        // Cache the proxy response so the main thread can read it
-        const cache = await caches.open("snapshot-fetches");
+        const cache = await caches.open(CACHE_SNAPSHOTS);
         await cache.put(proxyUrl, response.clone());
       }
-      // Remove from queue on success
       const deleteTx = db.transaction("pending", "readwrite");
       deleteTx.objectStore("pending").delete(item.id);
       await idbTxDone(deleteTx);
     } catch {
-      // Still offline or failed, leave in queue for next sync
+      // Still offline, leave in queue
     }
   }
 
   db.close();
 
-  // Notify the main thread that snapshots may have been fetched
   const clients = await self.clients.matchAll();
   for (const client of clients) {
-    client.postMessage({ type: "SNAPSHOTS_SYNCED" });
+    client.postMessage({ type: MSG_SNAPSHOTS_SYNCED });
   }
 }
 
-// Minimal IndexedDB helpers for use inside the service worker
+// Minimal IndexedDB helpers — can't use the `idb` npm package in the SW context
 function openQueue(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open("backpocket_queue", 1);
+    const req = indexedDB.open(QUEUE_DB_NAME, 1);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains("pending")) {

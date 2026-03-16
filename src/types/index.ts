@@ -37,6 +37,11 @@ export interface AppConfig {
   lastSync?: string;
 }
 
+export interface BookmarkActions {
+  onStatusChange: (id: string, status: BookmarkStatus) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}
+
 export const DEFAULT_CONFIG: AppConfig = {
   storageProvider: 'local',
   darkMode: 'system',

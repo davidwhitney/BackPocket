@@ -1,6 +1,5 @@
 import { AppConfig, DEFAULT_CONFIG } from "../types/index.ts";
-
-const CONFIG_KEY = 'backpocket_config';
+import { CONFIG_KEY } from "../constants.ts";
 
 export function loadConfig(): AppConfig {
   try {

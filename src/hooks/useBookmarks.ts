@@ -8,7 +8,19 @@ import {
   searchBookmarks,
 } from "../services/storage.ts";
 
-export function useBookmarks() {
+export interface BookmarkService {
+  bookmarks: Bookmark[];
+  loading: boolean;
+  refresh: () => Promise<void>;
+  addBookmark: (url: string, title?: string, description?: string) => Promise<Bookmark>;
+  updateBookmark: (id: string, updates: Partial<Bookmark>) => Promise<void>;
+  removeBookmark: (id: string) => Promise<void>;
+  setStatus: (id: string, status: BookmarkStatus) => Promise<void>;
+  setTags: (id: string, tags: string[]) => Promise<void>;
+  search: (query: string, deep?: boolean) => Promise<Bookmark[]>;
+}
+
+export function useBookmarks(): BookmarkService {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,14 +80,6 @@ export function useBookmarks() {
     return searchBookmarks(query, deep);
   }, []);
 
-  const filterByTags = useCallback(
-    (tags: string[]) => {
-      if (tags.length === 0) return bookmarks;
-      return bookmarks.filter((b) => tags.every((t) => b.tags.includes(t)));
-    },
-    [bookmarks],
-  );
-
   return {
     bookmarks,
     loading,
@@ -86,6 +90,5 @@ export function useBookmarks() {
     setStatus,
     setTags,
     search,
-    filterByTags,
   };
 }
