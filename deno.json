@@ -1,18 +1,22 @@
 {
   "nodeModulesDir": "auto",
   "compilerOptions": {
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [
+        "react",
+        "react-dom",
+        "@types/react"
+    ],
+    "lib": [
+        "dom",
+        "dom.iterable",
+        "deno.ns"
+    ],
     "jsx": "react-jsx",
-    "jsxImportSource": "react",
-    "strict": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler"
+    "jsxImportSource": "react"
   },
   "imports": {
     "react": "npm:react@^19.2.4",
-    "react/": "npm:react@^19.2.4/",
     "react-dom": "npm:react-dom@^19.2.4",
-    "react-dom/": "npm:react-dom@^19.2.4/",
     "react-router-dom": "npm:react-router-dom@^7.13.1",
     "dompurify": "npm:dompurify@^3.3.3",
     "idb": "npm:idb@^8.0.3",
