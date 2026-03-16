@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Bookmark, BookmarkActions } from "../types/index.ts";
 import { timeAgo, getDomain } from "../utils/format.ts";
+import { useConfirm } from "../hooks/useConfirm.ts";
 import { CheckIcon, CircleIcon, ArchiveIcon, TrashIcon } from "./Icons.tsx";
 import { Favicon } from "./Favicon.tsx";
 
@@ -9,6 +10,18 @@ interface Props extends BookmarkActions {
 }
 
 export function BookmarkRow({ bookmark, onStatusChange, onDelete }: Props) {
+  const confirm = useConfirm();
+
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: "Delete bookmark",
+      message: `Delete "${bookmark.title}" permanently?`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (ok) onDelete(bookmark.id);
+  };
+
   return (
     <div className={`bookmark-row ${bookmark.status}`}>
       <Favicon url={bookmark.url} size={16} />
@@ -44,11 +57,7 @@ export function BookmarkRow({ bookmark, onStatusChange, onDelete }: Props) {
         <button className="btn-icon" title="Archive" onClick={() => onStatusChange(bookmark.id, "archived")}>
           <ArchiveIcon size={14} />
         </button>
-        <button
-          className="btn-icon btn-danger"
-          title="Delete"
-          onClick={() => { if (confirm("Delete this bookmark permanently?")) onDelete(bookmark.id); }}
-        >
+        <button className="btn-icon btn-danger" title="Delete" onClick={handleDelete}>
           <TrashIcon size={14} />
         </button>
       </div>

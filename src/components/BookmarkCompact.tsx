@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Bookmark, BookmarkActions } from "../types/index.ts";
 import { timeAgo, getDomain } from "../utils/format.ts";
 import { shareUrl } from "../utils/share.ts";
+import { useConfirm } from "../hooks/useConfirm.ts";
 import { CheckIcon, CircleIcon, ArchiveIcon, ShareIcon, TrashIcon } from "./Icons.tsx";
 import { Favicon } from "./Favicon.tsx";
 
@@ -10,6 +11,18 @@ interface Props extends BookmarkActions {
 }
 
 export function BookmarkCompact({ bookmark, onStatusChange, onDelete }: Props) {
+  const confirm = useConfirm();
+
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: "Delete bookmark",
+      message: `Delete "${bookmark.title}" permanently?`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (ok) onDelete(bookmark.id);
+  };
+
   return (
     <div className={`bookmark-compact ${bookmark.status}`}>
       <Link to={`/view/${bookmark.id}`} className="bookmark-compact-content">
@@ -51,11 +64,7 @@ export function BookmarkCompact({ bookmark, onStatusChange, onDelete }: Props) {
         <button className="btn-icon" title="Share" onClick={() => shareUrl(bookmark.title, bookmark.url)}>
           <ShareIcon size={14} />
         </button>
-        <button
-          className="btn-icon btn-danger"
-          title="Delete"
-          onClick={() => { if (confirm("Delete this bookmark permanently?")) onDelete(bookmark.id); }}
-        >
+        <button className="btn-icon btn-danger" title="Delete" onClick={handleDelete}>
           <TrashIcon size={14} />
         </button>
       </div>

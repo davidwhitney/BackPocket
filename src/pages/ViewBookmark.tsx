@@ -5,6 +5,7 @@ import { Bookmark, BookmarkStatus, PageSnapshot } from "../types/index.ts";
 import { getBookmark, getSnapshot } from "../services/storage.ts";
 import { shareUrl } from "../utils/share.ts";
 import { ArrowLeftIcon, ShareIcon } from "../components/Icons.tsx";
+import { useConfirm } from "../hooks/useConfirm.ts";
 
 interface Props {
   bookmarks: {
@@ -17,6 +18,7 @@ interface Props {
 export function ViewBookmark({ bookmarks }: Props) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [bookmark, setBookmark] = useState<Bookmark | null>(null);
   const [snapshot, setSnapshot] = useState<PageSnapshot | null>(null);
   const [viewMode, setViewMode] = useState<"info" | "cached">("info");
@@ -62,7 +64,13 @@ export function ViewBookmark({ bookmarks }: Props) {
   };
 
   const handleDelete = async () => {
-    if (confirm("Delete this bookmark permanently?")) {
+    const ok = await confirm({
+      title: "Delete bookmark",
+      message: `Delete "${bookmark.title}" permanently?`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (ok) {
       await bookmarks.removeBookmark(bookmark.id);
       navigate("/");
     }
