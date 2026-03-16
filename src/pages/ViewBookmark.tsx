@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
 import { Bookmark, BookmarkStatus, PageSnapshot } from "../types/index";
-import { getBookmark, getSnapshot } from "../services/storage";
+import { getBookmark, getSnapshot, hasLocalSnapshot } from "../services/storage";
 import { shareUrl } from "../utils/share";
-import { ArrowLeftIcon, ShareIcon } from "../components/Icons";
+import { ArrowLeftIcon, ShareIcon, CloudDownloadIcon, DeviceIcon } from "../components/Icons";
 import { useBookmarkDelete } from "../hooks/useBookmarkDelete";
 
 interface Props {
@@ -15,11 +15,14 @@ interface Props {
   };
 }
 
+type SnapshotState = "loading" | "local" | "remote" | "downloading" | "unavailable";
+
 export function ViewBookmark({ bookmarks }: Props) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [bookmark, setBookmark] = useState<Bookmark | null>(null);
   const [snapshot, setSnapshot] = useState<PageSnapshot | null>(null);
+  const [snapshotState, setSnapshotState] = useState<SnapshotState>("loading");
   const [readerMode, setReaderMode] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -37,14 +40,38 @@ export function ViewBookmark({ bookmarks }: Props) {
       return;
     }
     setBookmark(bm);
-    const snap = await getSnapshot(id);
-    if (snap) setSnapshot(snap);
+
+    if (!bm.snapshotAvailable) {
+      setSnapshotState("unavailable");
+    } else {
+      const isLocal = await hasLocalSnapshot(id);
+      if (isLocal) {
+        const snap = await getSnapshot(id);
+        if (snap) setSnapshot(snap);
+        setSnapshotState("local");
+      } else {
+        setSnapshotState("remote");
+      }
+    }
+
     setLoading(false);
   }, [id, navigate]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  const handleDownloadSnapshot = async () => {
+    if (!id) return;
+    setSnapshotState("downloading");
+    const snap = await getSnapshot(id); // This fetches from remote + caches locally
+    if (snap) {
+      setSnapshot(snap);
+      setSnapshotState("local");
+    } else {
+      setSnapshotState("unavailable");
+    }
+  };
 
   if (loading || !bookmark) {
     return <div className="loading">Loading...</div>;
@@ -158,9 +185,25 @@ export function ViewBookmark({ bookmarks }: Props) {
         >
           Open Link
         </a>
-        {snapshot && (
-          <button className="btn btn-secondary" onClick={() => setReaderMode(true)}>
+
+        {snapshotState === "local" && (
+          <button className="btn btn-secondary reader-btn" onClick={() => setReaderMode(true)}>
+            <DeviceIcon size={16} />
             Reader View
+          </button>
+        )}
+
+        {snapshotState === "remote" && (
+          <button className="btn btn-secondary reader-btn" onClick={handleDownloadSnapshot}>
+            <CloudDownloadIcon size={16} />
+            Download for Reading
+          </button>
+        )}
+
+        {snapshotState === "downloading" && (
+          <button className="btn btn-secondary reader-btn" disabled>
+            <CloudDownloadIcon size={16} />
+            Downloading...
           </button>
         )}
       </div>

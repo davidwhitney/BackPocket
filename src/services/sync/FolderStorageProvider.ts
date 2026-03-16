@@ -8,6 +8,7 @@ import {
   deleteSnapshotFromFolder,
   readIndexFromFolder,
   readAllSnapshotsFromFolder,
+  readSnapshotFromFolder,
 } from "../folder-sync";
 
 export class FolderStorageProvider implements ExternalStorageProvider {
@@ -51,6 +52,12 @@ export class FolderStorageProvider implements ExternalStorageProvider {
     const snapshots = await readAllSnapshotsFromFolder();
     const data = JSON.stringify({ index, snapshots });
     return { success: true, data };
+  }
+
+  async fetchSnapshot(id: string, _config: AppConfig): Promise<PageSnapshot | null> {
+    if (!getDirHandle()) await restoreHandle();
+    if (!getDirHandle()) return null;
+    return readSnapshotFromFolder(id);
   }
 
   async hasRemoteChanges(_config: AppConfig): Promise<boolean> {

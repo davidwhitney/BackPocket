@@ -961,6 +961,13 @@ input[type="checkbox"] {
   display: flex;
   gap: 10px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.reader-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .view-status-actions {

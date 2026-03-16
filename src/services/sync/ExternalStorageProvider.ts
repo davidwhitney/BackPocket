@@ -31,6 +31,9 @@ export interface ExternalStorageProvider {
   /** Pull all data from the remote (for manual restore) */
   pull(config: AppConfig): Promise<PullResult>;
 
+  /** Fetch a single snapshot on demand from the remote (for lazy loading) */
+  fetchSnapshot(id: string, config: AppConfig): Promise<PageSnapshot | null>;
+
   /** Check if remote has changed since last sync (cheap/fast). Returns true if unknown. */
   hasRemoteChanges(config: AppConfig): Promise<boolean>;
 }

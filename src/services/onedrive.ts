@@ -241,6 +241,30 @@ export async function getFileETag(
   return data.eTag || null;
 }
 
+export async function deleteRemoteFile(
+  accessToken: string,
+  filename: string,
+): Promise<void> {
+  await graphFetch(
+    accessToken,
+    `/me/drive/root:/${APP_FOLDER}/${filename}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function listFolder(
+  accessToken: string,
+  subfolder?: string,
+): Promise<string[]> {
+  const path = subfolder
+    ? `/me/drive/root:/${APP_FOLDER}/${subfolder}:/children?$select=name`
+    : `/me/drive/root:/${APP_FOLDER}:/children?$select=name`;
+  const resp = await graphFetch(accessToken, path);
+  if (!resp.ok) return [];
+  const data = await resp.json();
+  return (data.value || []).map((f: any) => f.name);
+}
+
 // --- High-level sync API ---
 
 export async function syncToOneDrive(

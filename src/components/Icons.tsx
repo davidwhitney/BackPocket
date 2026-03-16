@@ -91,3 +91,18 @@ export function AppLogoIcon({ size = 28 }: { size?: number }) {
     </svg>
   );
 }
+
+export function CloudDownloadIcon({ size = 16 }: IconProps) {
+  return svg(size, <>
+    <polyline points="8 17 12 21 16 17" />
+    <line x1="12" y1="12" x2="12" y2="21" />
+    <path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29" />
+  </>);
+}
+
+export function DeviceIcon({ size = 16 }: IconProps) {
+  return svg(size, <>
+    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+    <line x1="12" y1="18" x2="12.01" y2="18" />
+  </>);
+}

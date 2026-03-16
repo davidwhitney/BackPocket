@@ -14,6 +14,7 @@ interface UseSyncOptions {
 
 export function useSync({ config, setConfig, onDataPulled }: UseSyncOptions) {
   const syncingRef = useRef(false);
+  const initialPullDoneRef = useRef(false);
   const configRef = useRef(config);
   configRef.current = config;
   const setConfigRef = useRef(setConfig);
@@ -30,34 +31,37 @@ export function useSync({ config, setConfig, onDataPulled }: UseSyncOptions) {
     provider?.init(config);
   }, [config.storageProvider]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pullRemote = useCallback(async () => {
+  const pullRemote = useCallback(async (): Promise<boolean> => {
     const cfg = configRef.current;
     const provider = getExternalProvider(cfg.storageProvider);
-    if (!provider) return;
-    if (provider.requiresOnline && !navigator.onLine) return;
+    if (!provider) return false;
+    if (provider.requiresOnline && !navigator.onLine) return false;
 
     if (!provider.isReady(cfg)) {
       await provider.init(cfg);
-      if (!provider.isReady(cfg)) return;
+      if (!provider.isReady(cfg)) return false;
     }
 
-    // Check if remote has changed before downloading
     const changed = await provider.hasRemoteChanges(cfg);
-    if (!changed) return;
+    if (!changed) return false;
 
     try {
       const result = await provider.pull(cfg);
       if (result.success && result.data) {
-        await mergeRemoteData(result.data, cfg.lastSync);
+        const merged = await mergeRemoteData(result.data, cfg.lastSync);
         onDataPulledRef.current?.();
+        return merged.added > 0 || merged.updated > 0 || merged.deleted > 0;
       }
     } catch (err) {
       console.warn("Pull failed:", err);
     }
+    return false;
   }, []);
 
   const syncNow = useCallback(async () => {
     if (syncingRef.current) return;
+    // Don't push until the initial pull has completed
+    if (!initialPullDoneRef.current) return;
 
     const cfg = configRef.current;
     const provider = getExternalProvider(cfg.storageProvider);
@@ -98,23 +102,36 @@ export function useSync({ config, setConfig, onDataPulled }: UseSyncOptions) {
   useEffect(() => {
     const provider = getExternalProvider(config.storageProvider);
     if (!provider) return;
-    const handler = () => {
-      pullRemote().then(() => scheduleSync());
+    const handler = async () => {
+      const pulled = await pullRemote();
+      if (!pulled) scheduleSync();
     };
     window.addEventListener("online", handler);
     return () => window.removeEventListener("online", handler);
   }, [config.storageProvider, scheduleSync, pullRemote]);
 
-  // On startup: pull remote changes, then push local
+  // On startup: pull remote first, then allow pushes
   useEffect(() => {
     const provider = getExternalProvider(config.storageProvider);
     if (!provider) return;
     const timer = setTimeout(async () => {
       await pullRemote();
-      scheduleSync();
+      initialPullDoneRef.current = true;
+      // Only push if local has data that remote might not have
+      const index = await loadIndex();
+      if (index.bookmarks.length > 0) {
+        scheduleSync();
+      }
     }, 500);
     return () => clearTimeout(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Mark initial pull as done for providers that don't need it (local)
+  useEffect(() => {
+    if (!getExternalProvider(config.storageProvider)) {
+      initialPullDoneRef.current = true;
+    }
+  }, [config.storageProvider]);
 
   return { scheduleSync, syncNow, pullRemote };
 }

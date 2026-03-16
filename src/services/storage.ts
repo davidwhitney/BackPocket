@@ -42,8 +42,33 @@ export function getBookmark(id: string): Promise<Bookmark | undefined> {
   return storage().getBookmark(id);
 }
 
-export function getSnapshot(id: string): Promise<PageSnapshot | undefined> {
-  return storage().getSnapshot(id);
+export async function hasLocalSnapshot(id: string): Promise<boolean> {
+  const local = await storage().getSnapshot(id);
+  return !!local;
+}
+
+export async function getSnapshot(id: string): Promise<PageSnapshot | undefined> {
+  // Try local first
+  const local = await storage().getSnapshot(id);
+  if (local) return local;
+
+  // If not local, try fetching from the active sync provider on demand
+  const cfg = loadConfig();
+  const provider = getExternalProvider(cfg.storageProvider);
+  if (!provider || !provider.isReady(cfg)) return undefined;
+
+  try {
+    const remote = await provider.fetchSnapshot(id, cfg);
+    if (remote) {
+      // Cache locally for future access
+      await storage().saveSnapshot(remote);
+      return remote;
+    }
+  } catch {
+    // Remote fetch failed
+  }
+
+  return undefined;
 }
 
 export function getAllSnapshots(): Promise<PageSnapshot[]> {
