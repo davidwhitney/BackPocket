@@ -16,7 +16,7 @@ export function BookmarkList({ bookmarks: bm, viewMode }: Props) {
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [query, setQuery] = useState("");
-  const [deepSearch, setDeepSearch] = useState(false);
+  const [deepSearch, setDeepSearch] = useState(true);
   const [searchResults, setSearchResults] = useState<Bookmark[] | null>(null);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);

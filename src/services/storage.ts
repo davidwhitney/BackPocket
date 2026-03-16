@@ -1,106 +1,49 @@
-import { openDB, IDBPDatabase } from "idb";
 import { Bookmark, BookmarkIndex, PageSnapshot } from "../types/index.ts";
 import { generateId } from "../utils/id.ts";
-import { DB_NAME, DB_VERSION } from "../constants.ts";
+import { getPlatformServices } from "./platform.ts";
 import { enqueueSnapshotFetch, getAllPending, dequeueItem } from "./offline-queue.ts";
+import type { FetchPageResult } from "./strategies/PageFetchStrategy.ts";
 
-let dbPromise: Promise<IDBPDatabase> | null = null;
+// --- Delegating accessors (keep the public API unchanged) ---
 
-function getDb(): Promise<IDBPDatabase> {
-  if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains("index")) {
-          db.createObjectStore("index", { keyPath: "id" });
-        }
-        if (!db.objectStoreNames.contains("snapshots")) {
-          db.createObjectStore("snapshots", { keyPath: "id" });
-        }
-      },
-    });
-  }
-  return dbPromise;
+function storage() { return getPlatformServices().storage; }
+function fetcher() { return getPlatformServices().pageFetch; }
+
+export function loadIndex(): Promise<BookmarkIndex> {
+  return storage().loadIndex();
 }
 
-// --- Index operations ---
-
-export async function loadIndex(): Promise<BookmarkIndex> {
-  const db = await getDb();
-  const bookmarks = await db.getAll("index");
-  return { version: 1, bookmarks: bookmarks as Bookmark[] };
+export function saveBookmark(bookmark: Bookmark): Promise<void> {
+  return storage().saveBookmark(bookmark);
 }
 
-export async function saveBookmark(bookmark: Bookmark): Promise<void> {
-  const db = await getDb();
-  await db.put("index", bookmark);
+export function deleteBookmark(id: string): Promise<void> {
+  return storage().deleteBookmark(id);
 }
 
-export async function deleteBookmark(id: string): Promise<void> {
-  const db = await getDb();
-  await db.delete("index", id);
-  await db.delete("snapshots", id);
+export function getBookmark(id: string): Promise<Bookmark | undefined> {
+  return storage().getBookmark(id);
 }
 
-export async function getBookmark(id: string): Promise<Bookmark | undefined> {
-  const db = await getDb();
-  return db.get("index", id);
+export function getSnapshot(id: string): Promise<PageSnapshot | undefined> {
+  return storage().getSnapshot(id);
 }
 
-// --- Snapshot operations ---
-
-export async function saveSnapshot(snapshot: PageSnapshot): Promise<void> {
-  const db = await getDb();
-  await db.put("snapshots", snapshot);
+export function getAllSnapshots(): Promise<PageSnapshot[]> {
+  return storage().getAllSnapshots();
 }
 
-export async function getSnapshot(id: string): Promise<PageSnapshot | undefined> {
-  const db = await getDb();
-  return db.get("snapshots", id);
-}
-
-export async function getAllSnapshots(): Promise<PageSnapshot[]> {
-  const db = await getDb();
-  return db.getAll("snapshots");
-}
-
-// --- Page fetching ---
-
-interface FetchPageResult {
-  title: string;
-  description: string;
-  content: string;
-  textContent: string;
-}
-
-async function fetchPage(url: string, signal?: AbortSignal): Promise<FetchPageResult | null> {
-  try {
-    const response = await fetch(
-      `/api/fetch-page?url=${encodeURIComponent(url)}`,
-      signal ? { signal } : undefined,
-    );
-    if (!response.ok) return null;
-    const data = await response.json();
-    // Server extracts article content and metadata
-    return {
-      title: data.title || "",
-      description: data.description || "",
-      content: data.content || "",
-      textContent: data.textContent || "",
-    };
-  } catch {
-    return null;
-  }
-}
+// --- Snapshot helpers ---
 
 async function saveSnapshotForBookmark(bookmarkId: string, page: FetchPageResult): Promise<void> {
-  await saveSnapshot({
+  await storage().saveSnapshot({
     id: bookmarkId,
     content: page.content,
     textContent: page.textContent,
     fetchedAt: new Date().toISOString(),
   });
 
-  const bookmark = await getBookmark(bookmarkId);
+  const bookmark = await storage().getBookmark(bookmarkId);
   if (bookmark) {
     bookmark.snapshotAvailable = true;
     bookmark.dateModified = new Date().toISOString();
@@ -110,7 +53,7 @@ async function saveSnapshotForBookmark(bookmarkId: string, page: FetchPageResult
     if (page.description && !bookmark.description) {
       bookmark.description = page.description;
     }
-    await saveBookmark(bookmark);
+    await storage().saveBookmark(bookmark);
   }
 }
 
@@ -122,7 +65,7 @@ export async function fetchPageMetadata(
 ): Promise<{ title: string; description: string } | null> {
   if (!navigator.onLine) return null;
 
-  const page = await fetchPage(url, signal);
+  const page = await fetcher().fetchPage(url, signal);
   if (!page) return null;
   if (!page.title && !page.description) return null;
   return { title: page.title, description: page.description };
@@ -148,7 +91,7 @@ export async function addBookmark(
     snapshotAvailable: false,
   };
 
-  await saveBookmark(bookmark);
+  await storage().saveBookmark(bookmark);
   fetchAndStoreSnapshot(id, url).catch(console.error);
 
   return bookmark;
@@ -160,7 +103,7 @@ export async function fetchAndStoreSnapshot(id: string, url: string): Promise<vo
     return;
   }
 
-  const page = await fetchPage(url);
+  const page = await fetcher().fetchPage(url);
   if (!page) {
     await enqueueSnapshotFetch(id, url);
     return;
@@ -173,7 +116,7 @@ export async function fetchPendingSnapshots(): Promise<void> {
   const pending = await getAllPending();
 
   for (const item of pending) {
-    const page = await fetchPage(item.url);
+    const page = await fetcher().fetchPage(item.url);
     if (!page) continue;
 
     await saveSnapshotForBookmark(item.bookmarkId, page);
@@ -187,7 +130,7 @@ export async function searchBookmarks(
   query: string,
   deepSearch: boolean = false,
 ): Promise<Bookmark[]> {
-  const index = await loadIndex();
+  const index = await storage().loadIndex();
   const q = query.toLowerCase();
 
   const results = index.bookmarks.filter((b) =>
@@ -200,7 +143,7 @@ export async function searchBookmarks(
   if (!deepSearch) return results;
 
   const allBookmarkIds = new Set(results.map((b) => b.id));
-  const snapshots = await getAllSnapshots();
+  const snapshots = await storage().getAllSnapshots();
 
   for (const snap of snapshots) {
     if (allBookmarkIds.has(snap.id)) continue;
@@ -216,11 +159,11 @@ export async function searchBookmarks(
   return results;
 }
 
-// --- Export ---
+// --- Export / Import ---
 
 export async function exportAllData(): Promise<string> {
-  const index = await loadIndex();
-  const snapshots = await getAllSnapshots();
+  const index = await storage().loadIndex();
+  const snapshots = await storage().getAllSnapshots();
   return JSON.stringify({ index, snapshots }, null, 2);
 }
 
@@ -234,20 +177,7 @@ export async function importAllData(json: string): Promise<{ bookmarks: number; 
   const bookmarks: Bookmark[] = data.index.bookmarks;
   const snapshots: PageSnapshot[] = Array.isArray(data.snapshots) ? data.snapshots : [];
 
-  const db = await getDb();
-
-  const tx = db.transaction(["index", "snapshots"], "readwrite");
-  const indexStore = tx.objectStore("index");
-  const snapshotStore = tx.objectStore("snapshots");
-
-  for (const bookmark of bookmarks) {
-    await indexStore.put(bookmark);
-  }
-  for (const snapshot of snapshots) {
-    await snapshotStore.put(snapshot);
-  }
-
-  await tx.done;
+  await storage().importAll(bookmarks, snapshots);
 
   return { bookmarks: bookmarks.length, snapshots: snapshots.length };
 }

@@ -413,7 +413,7 @@ a {
   margin-bottom: 16px;
 }
 
-.form-group label {
+.form-group > label {
   display: block;
   font-size: 13px;
   font-weight: 600;
@@ -450,27 +450,39 @@ textarea {
   resize: vertical;
 }
 
+input[type="radio"],
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .radio-group {
   display: flex;
-  gap: 16px;
+  gap: 20px;
 }
 
 .radio-label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   cursor: pointer;
   font-size: 15px;
+  padding: 4px 0;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 14px;
   color: var(--text-secondary);
   margin-top: 12px;
   cursor: pointer;
+  padding: 4px 0;
 }
 
 /* ============================================================
