@@ -1,0 +1,41 @@
+{
+  "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "strict": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler"
+  },
+  "imports": {
+    "react": "npm:react@^19.2.4",
+    "react/": "npm:react@^19.2.4/",
+    "react-dom": "npm:react-dom@^19.2.4",
+    "react-dom/": "npm:react-dom@^19.2.4/",
+    "react-router-dom": "npm:react-router-dom@^7.13.1",
+    "dompurify": "npm:dompurify@^3.3.3",
+    "idb": "npm:idb@^8.0.3",
+    "vite": "npm:vite@^6.0.0",
+    "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^4.3.4",
+    "vite-plugin-pwa": "npm:vite-plugin-pwa@^0.21.1",
+    "workbox-core": "npm:workbox-core@^7.3.0",
+    "workbox-cacheable-response": "npm:workbox-cacheable-response@^7.3.0",
+    "workbox-expiration": "npm:workbox-expiration@^7.3.0",
+    "workbox-precaching": "npm:workbox-precaching@^7.3.0",
+    "workbox-routing": "npm:workbox-routing@^7.3.0",
+    "workbox-strategies": "npm:workbox-strategies@^7.3.0",
+    "workbox-window": "npm:workbox-window@^7.3.0",
+    "@types/react": "npm:@types/react@^19.2.14",
+    "@types/react-dom": "npm:@types/react-dom@^19.2.3",
+    "@types/dompurify": "npm:@types/dompurify@^3.0.5"
+  },
+  "tasks": {
+    "dev": "deno task server & deno task vite",
+    "server": "deno run --allow-net --allow-read --allow-env server.ts",
+    "vite": "deno run -A npm:vite@6",
+    "build": "deno run -A npm:vite@6 build",
+    "preview": "deno task server",
+    "start": "deno task build && deno task server"
+  }
+}
