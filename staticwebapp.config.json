@@ -7,6 +7,6 @@
     "X-Clacks-Overhead": "GNU Terry Pratchett"
   },
   "platform": {
-    "apiRuntime": "node:20"
+    "apiRuntime": "node:22"
   }
 }
