@@ -41,7 +41,7 @@ async function writeFile(dir: FileSystemDirectoryHandle, filename: string, data:
     await writable.close();
     return true;
   } catch (err) {
-    console.error(`Failed to write ${filename}:`, err);
+    console.warn(`Failed to write ${filename}:`, err);
     return false;
   }
 }

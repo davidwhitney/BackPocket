@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { AppConfig } from "../../types/index";
-import { importAllData } from "../../services/storage";
 import { pickFolder, persistHandle, restoreHandle, clearHandle, getDirHandle } from "../../services/folder-sync";
-import { getExternalProvider } from "../../services/sync/registry";
+import { SyncControls } from "./SyncControls";
 
 interface Props {
   config: AppConfig;
@@ -13,8 +12,6 @@ interface Props {
 
 export function FolderSyncConfig({ config, setConfig, onDataChange, syncNow }: Props) {
   const [folderConnected, setFolderConnected] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     restoreHandle().then((h) => { if (h) setFolderConnected(true); });
@@ -26,7 +23,6 @@ export function FolderSyncConfig({ config, setConfig, onDataChange, syncNow }: P
     await persistHandle(handle);
     setConfig({ folderName: handle.name });
     setFolderConnected(true);
-    setStatus(`Connected to "${handle.name}"`);
     syncNow?.();
   };
 
@@ -34,40 +30,6 @@ export function FolderSyncConfig({ config, setConfig, onDataChange, syncNow }: P
     await clearHandle();
     setConfig({ folderName: undefined });
     setFolderConnected(false);
-    setStatus(null);
-  };
-
-  const handlePush = async () => {
-    setSyncing(true);
-    setStatus("Saving...");
-    try {
-      await syncNow?.();
-      setStatus("Saved");
-    } catch {
-      setStatus("Error: sync failed");
-    }
-    setSyncing(false);
-  };
-
-  const handlePull = async () => {
-    setSyncing(true);
-    setStatus("Loading from folder...");
-    try {
-      const provider = getExternalProvider("folder");
-      if (!provider) { setStatus("Error: provider not available"); setSyncing(false); return; }
-      const result = await provider.pull(config);
-      if (!result.success || !result.data) {
-        setStatus(`Error: ${result.error || "No data"}`);
-        setSyncing(false);
-        return;
-      }
-      const imported = await importAllData(result.data);
-      setStatus(`Restored ${imported.bookmarks} bookmarks and ${imported.snapshots} snapshots`);
-      onDataChange?.();
-    } catch (err) {
-      setStatus(`Error: ${err instanceof Error ? err.message : "Read failed"}`);
-    }
-    setSyncing(false);
   };
 
   const folderName = config.folderName || getDirHandle()?.name;
@@ -81,11 +43,7 @@ export function FolderSyncConfig({ config, setConfig, onDataChange, syncNow }: P
             <button className="btn btn-sm btn-secondary" onClick={handleChooseFolder}>Change</button>
             <button className="btn btn-sm btn-danger" onClick={handleDisconnect}>Disconnect</button>
           </div>
-          <div className="sync-actions">
-            <button className="btn btn-secondary btn-sm" onClick={handlePush} disabled={syncing}>Sync Now</button>
-            <button className="btn btn-secondary btn-sm" onClick={handlePull} disabled={syncing}>Pull from Folder</button>
-          </div>
-          {config.lastSync && <p className="help-text">Last sync: {new Date(config.lastSync).toLocaleString()}</p>}
+          <SyncControls config={config} providerType="folder" pullLabel="Pull from Folder" syncNow={syncNow} onDataChange={onDataChange} />
         </>
       ) : (
         <>
@@ -95,7 +53,6 @@ export function FolderSyncConfig({ config, setConfig, onDataChange, syncNow }: P
           </p>
         </>
       )}
-      {status && <p className={`import-status ${status.startsWith("Error") ? "import-error" : ""}`}>{status}</p>}
     </div>
   );
 }

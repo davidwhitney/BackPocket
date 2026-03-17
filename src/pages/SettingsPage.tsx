@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { AppConfig, StorageProvider, ViewMode } from "../types/index";
-import { exportAllData, importAllData } from "../services/storage";
+import { exportAllData, importAllData } from "../services/import-export";
 import { isFileSystemAccessSupported } from "../services/folder-sync";
 import { useConfirm } from "../hooks/useConfirm";
 import { FolderSyncConfig } from "./settings/FolderSyncConfig";
@@ -107,7 +107,7 @@ export function SettingsPage({ config: { config, setConfig }, onDataChange, sync
         </div>
         {config.storageProvider === "folder" && <FolderSyncConfig config={config} setConfig={setConfig} onDataChange={onDataChange} syncNow={syncNow} />}
         {config.storageProvider === "onedrive" && <OneDriveConfig config={config} setConfig={setConfig} onDataChange={onDataChange} syncNow={syncNow} />}
-        {config.storageProvider === "dropbox" && <DropboxConfig config={config} setConfig={setConfig} />}
+        {config.storageProvider === "dropbox" && <DropboxConfig />}
         {config.storageProvider === "icloud" && <div className="info-box">iCloud sync requires the native app wrapper. Coming soon.</div>}
       </section>
 

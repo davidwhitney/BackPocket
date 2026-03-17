@@ -1,6 +1,7 @@
 import { useRef, useCallback, useEffect } from "react";
 import { AppConfig } from "../types/index";
-import { loadIndex, mergeRemoteData } from "../services/storage";
+import { loadIndex } from "../services/storage";
+import { mergeRemoteData } from "../services/import-export";
 import { getExternalProvider } from "../services/sync/registry";
 import { setOneDriveConfigSetter } from "../services/sync/OneDriveStorageProvider";
 import { useDebounce } from "./useDebounce";

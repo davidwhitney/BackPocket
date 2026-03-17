@@ -1,20 +1,15 @@
 import { Link } from "react-router-dom";
 import { Bookmark, BookmarkActions } from "../types/index";
 import { timeAgo, getDomain } from "../utils/format";
-import { useBookmarkDelete } from "../hooks/useBookmarkDelete";
-import { CheckIcon, CircleIcon, ArchiveIcon, TrashIcon } from "./Icons";
 import { Favicon } from "./Favicon";
 import { BookmarkTags } from "./BookmarkTags";
-
-const ICON_SIZE = 14;
+import { BookmarkActionButtons } from "./BookmarkActionButtons";
 
 interface Props extends BookmarkActions {
   bookmark: Bookmark;
 }
 
 export function BookmarkRow({ bookmark, onStatusChange, onDelete }: Props) {
-  const handleDelete = useBookmarkDelete(onDelete);
-
   return (
     <div className={`bookmark-row ${bookmark.status}`}>
       <Favicon url={bookmark.url} />
@@ -32,21 +27,7 @@ export function BookmarkRow({ bookmark, onStatusChange, onDelete }: Props) {
         </div>
       </Link>
       <div className="bookmark-row-actions">
-        {bookmark.status === "unread" ? (
-          <button className="btn-icon" title="Mark as read" onClick={() => onStatusChange(bookmark.id, "read")}>
-            <CheckIcon size={ICON_SIZE} />
-          </button>
-        ) : (
-          <button className="btn-icon" title="Mark as unread" onClick={() => onStatusChange(bookmark.id, "unread")}>
-            <CircleIcon size={ICON_SIZE} />
-          </button>
-        )}
-        <button className="btn-icon" title="Archive" onClick={() => onStatusChange(bookmark.id, "archived")}>
-          <ArchiveIcon size={ICON_SIZE} />
-        </button>
-        <button className="btn-icon btn-danger" title="Delete" onClick={() => handleDelete(bookmark.id, bookmark.title)}>
-          <TrashIcon size={ICON_SIZE} />
-        </button>
+        <BookmarkActionButtons bookmark={bookmark} onStatusChange={onStatusChange} onDelete={onDelete} iconSize={14} />
       </div>
     </div>
   );

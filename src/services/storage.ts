@@ -142,7 +142,7 @@ export async function addBookmark(
   };
 
   await storage().saveBookmark(bookmark);
-  fetchAndStoreSnapshot(id, url).catch(console.error);
+  fetchAndStoreSnapshot(id, url).catch(console.warn);
 
   return bookmark;
 }
@@ -209,93 +209,4 @@ export async function searchBookmarks(
   return results;
 }
 
-// --- Export / Import ---
-
-export async function exportAllData(): Promise<string> {
-  const index = await storage().loadIndex();
-  const snapshots = await storage().getAllSnapshots();
-  return JSON.stringify({ index, snapshots }, null, 2);
-}
-
-export async function importAllData(json: string): Promise<{ bookmarks: number; snapshots: number }> {
-  const data = JSON.parse(json);
-
-  if (!data?.index?.bookmarks || !Array.isArray(data.index.bookmarks)) {
-    throw new Error("Invalid backup file: missing bookmarks array");
-  }
-
-  const bookmarks: Bookmark[] = data.index.bookmarks;
-  const snapshots: PageSnapshot[] = Array.isArray(data.snapshots) ? data.snapshots : [];
-
-  await storage().importAll(bookmarks, snapshots);
-
-  return { bookmarks: bookmarks.length, snapshots: snapshots.length };
-}
-
-/**
- * Merge remote data into local storage, respecting deletions and modifications.
- * - Remote bookmarks are added or updated (newer dateModified wins)
- * - Bookmarks that exist locally but not in remote are deleted (remote deletion)
- * - Local-only bookmarks that are newer than lastSync are kept (offline additions)
- */
-export async function mergeRemoteData(
-  json: string,
-  lastSync?: string,
-): Promise<{ added: number; updated: number; deleted: number }> {
-  const data = JSON.parse(json);
-
-  if (!data?.index?.bookmarks || !Array.isArray(data.index.bookmarks)) {
-    throw new Error("Invalid backup file: missing bookmarks array");
-  }
-
-  const remoteBookmarks: Bookmark[] = data.index.bookmarks;
-  const remoteSnapshots: PageSnapshot[] = Array.isArray(data.snapshots) ? data.snapshots : [];
-  const localIndex = await storage().loadIndex();
-
-  const remoteById = new Map(remoteBookmarks.map((b) => [b.id, b]));
-  const localById = new Map(localIndex.bookmarks.map((b) => [b.id, b]));
-  const syncCutoff = lastSync ? new Date(lastSync).getTime() : 0;
-
-  let added = 0;
-  let updated = 0;
-  let deleted = 0;
-
-  // Add or update from remote
-  for (const remote of remoteBookmarks) {
-    const local = localById.get(remote.id);
-    if (!local) {
-      // New from remote
-      await storage().saveBookmark(remote);
-      added++;
-    } else {
-      // Both exist — newer dateModified wins
-      const remoteTime = new Date(remote.dateModified).getTime();
-      const localTime = new Date(local.dateModified).getTime();
-      if (remoteTime > localTime) {
-        await storage().saveBookmark(remote);
-        updated++;
-      }
-    }
-  }
-
-  // Handle deletions: if a local bookmark isn't in the remote
-  // and it was created before the last sync, it was deleted remotely
-  for (const local of localIndex.bookmarks) {
-    if (!remoteById.has(local.id)) {
-      const addedTime = new Date(local.dateAdded).getTime();
-      if (addedTime < syncCutoff) {
-        // Existed before last sync but gone from remote — deleted remotely
-        await storage().deleteBookmark(local.id);
-        deleted++;
-      }
-      // If added after last sync, it's a local addition — keep it
-    }
-  }
-
-  // Import snapshots (merge, don't replace)
-  for (const snap of remoteSnapshots) {
-    await storage().saveSnapshot(snap);
-  }
-
-  return { added, updated, deleted };
-}
+// Export/Import/Merge functions are in ./import-export.ts

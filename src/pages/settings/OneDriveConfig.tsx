@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AppConfig } from "../../types/index";
-import { importAllData } from "../../services/storage";
 import { startOneDriveAuth, exchangeOneDriveCode } from "../../services/onedrive";
-import { getExternalProvider } from "../../services/sync/registry";
+import { SyncControls } from "./SyncControls";
 
 const CLIENT_ID = import.meta.env.POCKT_ONEDRIVE_CLIENT_ID;
 
@@ -17,10 +16,8 @@ interface Props {
 export function OneDriveConfig({ config, setConfig, onDataChange, syncNow }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
   const isConnected = !!config.onedrive?.accessToken;
 
-  // Handle OAuth callback — code arrives as ?code=...&state=onedrive
   useEffect(() => {
     const code = searchParams.get("code");
     const state = searchParams.get("state");
@@ -65,35 +62,6 @@ export function OneDriveConfig({ config, setConfig, onDataChange, syncNow }: Pro
 
   const handleDisconnect = () => { setConfig({ onedrive: undefined }); setStatus(null); };
 
-  const handlePush = async () => {
-    setSyncing(true);
-    setStatus("Uploading...");
-    try { await syncNow?.(); setStatus("Uploaded"); }
-    catch { setStatus("Error: sync failed"); }
-    setSyncing(false);
-  };
-
-  const handlePull = async () => {
-    setSyncing(true);
-    setStatus("Downloading from OneDrive...");
-    try {
-      const provider = getExternalProvider("onedrive");
-      if (!provider) { setStatus("Error: provider not available"); setSyncing(false); return; }
-      const result = await provider.pull(config);
-      if (!result.success || !result.data) {
-        setStatus(`Error: ${result.error || "No data"}`);
-        setSyncing(false);
-        return;
-      }
-      const imported = await importAllData(result.data);
-      setStatus(`Restored ${imported.bookmarks} bookmarks`);
-      onDataChange?.();
-    } catch (err) {
-      setStatus(`Error: ${err instanceof Error ? err.message : "Import failed"}`);
-    }
-    setSyncing(false);
-  };
-
   if (!CLIENT_ID) {
     return (
       <div className="provider-config">
@@ -110,11 +78,7 @@ export function OneDriveConfig({ config, setConfig, onDataChange, syncNow }: Pro
             <span className="status-connected">Connected</span>
             <button className="btn btn-sm btn-danger" onClick={handleDisconnect}>Disconnect</button>
           </div>
-          <div className="sync-actions">
-            <button className="btn btn-secondary btn-sm" onClick={handlePush} disabled={syncing}>Sync Now</button>
-            <button className="btn btn-secondary btn-sm" onClick={handlePull} disabled={syncing}>Pull from OneDrive</button>
-          </div>
-          {config.lastSync && <p className="help-text">Last sync: {new Date(config.lastSync).toLocaleString()}</p>}
+          <SyncControls config={config} providerType="onedrive" pullLabel="Pull from OneDrive" syncNow={syncNow} onDataChange={onDataChange} />
         </>
       ) : (
         <button className="btn btn-secondary" onClick={handleConnect}>Connect OneDrive</button>

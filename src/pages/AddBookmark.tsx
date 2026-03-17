@@ -69,7 +69,7 @@ export function AddBookmark({ bookmarks }: Props) {
       );
       navigate(`/view/${bookmark.id}`);
     } catch (err) {
-      console.error("Failed to save:", err);
+      console.warn("Failed to save:", err);
       setSaving(false);
     }
   }

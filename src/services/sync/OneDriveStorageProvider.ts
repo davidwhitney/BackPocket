@@ -4,7 +4,6 @@ import {
   uploadFile,
   downloadFile,
   deleteRemoteFile,
-  listFolder,
   getFileETag,
 } from "../onedrive";
 
